@@ -192,11 +192,11 @@ void DebugPortMCB::ExecuteCommand(void)
         break;
     case '8':
         dibDriver->mcbParameters.deploy_velocity = user_float;
-        action_queue->Push(ACT_SET_DV);
+        action_queue->Push(ACT_SET_DEPLOY_V);
         break;
     case '9':
         dibDriver->mcbParameters.retract_velocity = user_float;
-        action_queue->Push(ACT_SET_RV);
+        action_queue->Push(ACT_SET_RETRACT_V);
         break;
     case 'p': case 'm': case 'P': case 'M':
         PrintMenu();

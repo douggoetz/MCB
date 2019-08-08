@@ -1,17 +1,17 @@
 /*
- *  StateManagerMCB.cpp
+ *  MCB.cpp
  *  File implementing the MCB state manager
  *  Author: Alex St. Clair
  *  February 2018
  */
 
-#include "StateManagerMCB.h"
+#include "MCB.h"
 
 // --------------------------------------------------------
 // Constructor
 // --------------------------------------------------------
 
-StateManagerMCB::StateManagerMCB()
+MCB::MCB()
     : action_queue(10)
 	, monitor_queue(10)
 	, dibDriver(&action_queue)
@@ -29,7 +29,7 @@ StateManagerMCB::StateManagerMCB()
 // Public interface functions
 // --------------------------------------------------------
 
-void StateManagerMCB::Startup()
+void MCB::Startup()
 {
 	// Serial setup
 	DEBUG_SERIAL.begin(115200);
@@ -53,7 +53,8 @@ void StateManagerMCB::Startup()
 	digitalWrite(FORCEOFF_PIN, HIGH);
 }
 
-void StateManagerMCB::Loop()
+// note that the loop timing is controlled in MCB_Main.ino
+void MCB::Loop()
 {
 	debugPort.RunDebugPort();
 	dibDriver.RunDriver();
@@ -66,20 +67,20 @@ void StateManagerMCB::Loop()
 // State machine control
 // --------------------------------------------------------
 
-void StateManagerMCB::RunState(void)
+void MCB::RunState(void)
 {
 	// check if there's a new state
 	if (curr_state != last_state) {
-		(this->*(state_array[last_state]))(true); // exit the old state
-		num_loops = 0;
+		substate = EXIT_SUBSTATE;
+		(this->*(state_array[last_state]))(); // exit the old state
+		substate = ENTRY_SUBSTATE;
 	}
 
-	(this->*(state_array[curr_state]))(false); // call the current state
+	(this->*(state_array[curr_state]))(); // call the current state
 	last_state = curr_state;
-	num_loops++;
 }
 
-bool StateManagerMCB::SetState(MCB_States_t new_state)
+bool MCB::SetState(MCB_States_t new_state)
 {
 	if (new_state < 0 || new_state >= NUM_STATES) {
 		return false;
@@ -93,7 +94,7 @@ bool StateManagerMCB::SetState(MCB_States_t new_state)
 // Perform actions on queue
 // --------------------------------------------------------
 
-void StateManagerMCB::PerformActions(void)
+void MCB::PerformActions(void)
 {
 	uint8_t action;
 	while (!action_queue.IsEmpty()) {
@@ -118,21 +119,28 @@ void StateManagerMCB::PerformActions(void)
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
 				SetState(ST_REEL_OUT);
 			}
-			// todo: error if already reeling?
+			dibDriver.dibComm.TX_Error("Deploy denied, reel ops ongoing");
 			break;
 		case ACT_RETRACT_X:
 			// only retract if not currently performing reel operation
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
 				SetState(ST_REEL_IN);
 			}
-			// todo: error if already reeling?
+			dibDriver.dibComm.TX_Error("Retract denied, reel ops ongoing");
 			break;
 		case ACT_DOCK:
 			// only dock if not currently performing reel operation
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
 				SetState(ST_DOCK);
 			}
-			// todo: error if already reeling?
+			dibDriver.dibComm.TX_Error("Dock denied, reel ops ongoing");
+			break;
+		case ACT_HOME_LW:
+			// only home if not currently performing reel operation
+			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
+				SetState(ST_HOME_LW);
+			}
+			dibDriver.dibComm.TX_Error("Home denied, reel ops ongoing");
 			break;
 		case ACT_BRAKE_ON:
 			reel.BrakeOn();
@@ -140,17 +148,23 @@ void StateManagerMCB::PerformActions(void)
 		case ACT_BRAKE_OFF:
 			reel.BrakeOff();
 			break;
-		case ACT_SET_DV:
+		case ACT_SET_DEPLOY_V:
 			EEPROM_UPDATE_FLOAT(storageManager, deploy_velocity, dibDriver.mcbParameters.deploy_velocity);
 			break;
-		case ACT_SET_RV:
+		case ACT_SET_RETRACT_V:
 			EEPROM_UPDATE_FLOAT(storageManager, retract_velocity, dibDriver.mcbParameters.retract_velocity);
 			break;
-		case ACT_SET_DA:
+		case ACT_SET_DOCK_V:
+			EEPROM_UPDATE_FLOAT(storageManager, dock_velocity, dibDriver.mcbParameters.dock_velocity);
+			break;
+		case ACT_SET_DEPLOY_A:
 			EEPROM_UPDATE_FLOAT(storageManager, deploy_acceleration, dibDriver.mcbParameters.deploy_acceleration);
 			break;
-		case ACT_SET_RA:
+		case ACT_SET_RETRACT_A:
 			EEPROM_UPDATE_FLOAT(storageManager, retract_acceleration, dibDriver.mcbParameters.retract_acceleration);
+			break;
+		case ACT_SET_DOCK_A:
+			EEPROM_UPDATE_FLOAT(storageManager, dock_acceleration, dibDriver.mcbParameters.dock_acceleration);
 			break;
 		case ACT_ZERO_REEL:
 			ReelControllerOn();
@@ -176,7 +190,7 @@ void StateManagerMCB::PerformActions(void)
 // Private helper methods
 // --------------------------------------------------------
 
-void StateManagerMCB::CheckReel(void)
+void MCB::CheckReel(void)
 {
 	if (!reel.UpdateDriveStatus()) {
 		storageManager.LogSD("Error updating reel drive status", ERR_DATA);
@@ -196,7 +210,7 @@ void StateManagerMCB::CheckReel(void)
 }
 
 
-void StateManagerMCB::CheckLevelWind(void)
+void MCB::CheckLevelWind(void)
 {
 	if (!levelWind.UpdateDriveStatus()) {
 		storageManager.LogSD("Error updating level wind drive status", ERR_DATA);
@@ -204,15 +218,16 @@ void StateManagerMCB::CheckLevelWind(void)
 	}
 
 	if (levelWind.drive_status.fault) {
+		action_queue.Push(ACT_SWITCH_READY);
 		Serial.println("Motion fault (lw)");
 		LogFault();
-	} else if (reel.drive_status.motion_complete) {
+	} else if (levelWind.drive_status.motion_complete) {
 		Serial.println("Level wind motion complete");
 	}
 }
 
 
-void StateManagerMCB::LogFault(void)
+void MCB::LogFault(void)
 {
 	String fault_string = "";
 
@@ -242,7 +257,7 @@ void StateManagerMCB::LogFault(void)
 }
 
 
-bool StateManagerMCB::ReelControllerOn(void)
+bool MCB::ReelControllerOn(void)
 {
 	powerController.ReelOn();
 
@@ -281,7 +296,7 @@ bool StateManagerMCB::ReelControllerOn(void)
 }
 
 
-bool StateManagerMCB::LevelWindControllerOn(void)
+bool MCB::LevelWindControllerOn(void)
 {
 	// reel must be started first
 	if (!reel_initialized) return false;
@@ -304,14 +319,14 @@ bool StateManagerMCB::LevelWindControllerOn(void)
 }
 
 
-void StateManagerMCB::ReelControllerOff(void)
+void MCB::ReelControllerOff(void)
 {
 	powerController.ReelOff();
 	reel_initialized = false;
 }
 
 
-void StateManagerMCB::LevelWindControllerOff(void)
+void MCB::LevelWindControllerOff(void)
 {
 	powerController.LevelWindOff();
 	levelwind_initialized = false;
@@ -319,7 +334,7 @@ void StateManagerMCB::LevelWindControllerOff(void)
 	camming = false;
 }
 
-void StateManagerMCB::PrintBootInfo()
+void MCB::PrintBootInfo()
 {
   DEBUG_SERIAL.print("MCB Boot ");
   DEBUG_SERIAL.println(storageManager.eeprom_data.boot_count);

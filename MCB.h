@@ -1,5 +1,5 @@
 /*
- *  StateManagerMCB.h
+ *  MCB.h
  *  File defining the MCB state manager
  *  Author: Alex St. Clair
  *  February 2018
@@ -12,8 +12,8 @@
  *  4) Write the function for the state in the .cpp file
  */
 
-#ifndef STATEMANAGERMCB_H_
-#define STATEMANAGERMCB_H_
+#ifndef MCB_H_
+#define MCB_H_
 
 #include "MCBBufferGuard.h"
 #include "InternalSerialDriverMCB.h"
@@ -30,6 +30,9 @@
 #include <StdInt.h>
 #include <StdLib.h>
 
+#define ENTRY_SUBSTATE	0
+#define EXIT_SUBSTATE	1
+
 // Enum describing all states
 enum MCB_States_t : uint8_t {
 	ST_READY = 0,
@@ -37,14 +40,15 @@ enum MCB_States_t : uint8_t {
 	ST_REEL_OUT,
 	ST_REEL_IN,
 	ST_DOCK,
+	ST_HOME_LW,
 	NUM_STATES, // not a state, used for counting
 	UNUSED_STATE = 0xFF // not a state, used as default
 };
 
-class StateManagerMCB {
+class MCB {
 public:
-	StateManagerMCB();
-	~StateManagerMCB(void) { };
+	MCB();
+	~MCB(void) { };
 	
 	// public interface for MCB_Main.ino
 	void Startup();
@@ -59,19 +63,21 @@ private:
 	bool SetState(MCB_States_t new_state);
 
 	// State Methods, located in States.cpp file
-	void Ready(bool exit);
-	void Nominal(bool exit);
-	void ReelOut(bool exit);
-	void ReelIn(bool exit);
-	void Dock(bool exit);
+	void Ready();
+	void Nominal();
+	void ReelOut();
+	void ReelIn();
+	void Dock();
+	void HomeLW();
 
 	// Array of state functions
-	void (StateManagerMCB::*state_array[NUM_STATES])(bool exit) = {
-		&StateManagerMCB::Ready,
-		&StateManagerMCB::Nominal,
-		&StateManagerMCB::ReelOut,
-		&StateManagerMCB::ReelIn,
-		&StateManagerMCB::Dock
+	void (MCB::*state_array[NUM_STATES])() = {
+		&MCB::Ready,
+		&MCB::Nominal,
+		&MCB::ReelOut,
+		&MCB::ReelIn,
+		&MCB::Dock,
+		&MCB::HomeLW
 	};
 
 	// Helper functions
@@ -97,11 +103,13 @@ private:
 	// Hardware objects
 	PowerControllerMCB powerController;
 	StorageManagerMCB storageManager;
-	MonitorMCB limitMonitor;
 
 	// Reel and level wind objects
-	LevelWind levelWind;
 	Reel reel;
+	LevelWind levelWind;
+	
+	// Limit monitor object
+	MonitorMCB limitMonitor;
 
 	// Variables tracking current and last state
 	MCB_States_t curr_state = ST_READY;
@@ -114,8 +122,8 @@ private:
 	bool camming = false;
 	bool homed = false;
 
-	// Track how many times we've looped through the current state
-	uint32_t num_loops = 0;
+	// The current substate
+	uint8_t substate = ENTRY_SUBSTATE;
 
 };
 

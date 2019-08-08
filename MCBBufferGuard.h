@@ -30,9 +30,9 @@
 #include "HardwareSerial.h" // not necessary, but makes it easy to find the file with a smart IDE
 
 #ifndef SERIAL1_RX_BUFFER_SIZE
-#error "Need to redefine the Serial1 buffer size to 64"
-#elif SERIAL1_RX_BUFFER_SIZE != 64
-#error "Serial1 buffer should be 64 bytes"
+#error "Need to redefine the Serial1 buffer size to 128"
+#elif SERIAL1_RX_BUFFER_SIZE != 128
+#error "Serial1 buffer should be 128 bytes"
 #endif
 
 #ifndef SERIAL2_RX_BUFFER_SIZE
