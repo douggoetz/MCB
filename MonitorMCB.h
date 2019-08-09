@@ -17,7 +17,9 @@
 #include "Queue.h"
 #include <stdint.h>
 
-#define ADC_PERIOD      500  // min period for voltage/current measurements in millis
+#define TEMP_LOG_PERIOD     30000  // milliseconds
+#define VOLT_LOG_PERIOD     30000  // milliseconds
+#define CURR_LOG_PERIOD     30000  // milliseconds
 
 enum Motor_Torque_Index_t : uint8_t {
     REEL_INDEX = 0,

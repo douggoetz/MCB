@@ -51,6 +51,8 @@ void MCB::Startup()
 	pinMode(FORCEOFF_PIN, OUTPUT);
 	digitalWrite(FORCEON_PIN, HIGH);
 	digitalWrite(FORCEOFF_PIN, HIGH);
+
+	InitializeWatchdog();
 }
 
 // note that the loop timing is controlled in MCB_Main.ino
@@ -61,6 +63,7 @@ void MCB::Loop()
 	PerformActions();
 	RunState();
 	limitMonitor.Monitor();
+	KickWatchdog();
 }
 
 // --------------------------------------------------------
@@ -88,6 +91,43 @@ bool MCB::SetState(MCB_States_t new_state)
 
 	curr_state = new_state;
 	return true;
+}
+
+// --------------------------------------------------------
+// Watchdog
+// --------------------------------------------------------
+
+// initialize the watchdog using the 1kHz LPO clock source to achieve a 10s WDOG
+void MCB::InitializeWatchdog()
+{
+    if ((RCM_SRS0 & RCM_SRS0_WDOG) != 0) {
+        storageManager.LogSD("Reset caused by watchdog", ERR_DATA);
+    }
+
+    noInterrupts(); // disable interrupts
+
+    // unlock
+    WDOG_UNLOCK = WDOG_UNLOCK_SEQ1; // unlock access to WDOG registers
+    WDOG_UNLOCK = WDOG_UNLOCK_SEQ2;
+    delayMicroseconds(1);
+
+    WDOG_PRESC = 0; // no prescaling of clock
+
+    WDOG_TOVALH = 0x0000; // upper bits set to 0
+    WDOG_TOVALL = 0x2710; // 10000 counter at 1 kHz => 10s WDOG period
+
+    // in one write, enable the watchdog using the 1kHz LPO clock source
+    WDOG_STCTRLH = 0x01D1;
+
+    interrupts(); // enable interrupts
+}
+
+void MCB::KickWatchdog()
+{
+    noInterrupts();
+    WDOG_REFRESH = 0xA602;
+    WDOG_REFRESH = 0xB480;
+    interrupts();
 }
 
 // --------------------------------------------------------

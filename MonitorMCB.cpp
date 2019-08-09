@@ -75,24 +75,15 @@ void MonitorMCB::UpdateLimits(void)
 
 void MonitorMCB::Monitor(void)
 {
-    static uint32_t curr_time = 0;
-    static uint32_t last_adc = 0;
+    bool limits_ok = true;
 
     HandleCommands();
 
-    bool limits_ok = true;
-    curr_time = millis();
-
+    limits_ok &= CheckVoltages();
+    limits_ok &= CheckCurrents();
     if (!monitor_low_power) {
         limits_ok &= CheckTemperatures();
     }
-
-    if ((curr_time - last_adc) > ADC_PERIOD) {
-        limits_ok &= CheckVoltages();
-        last_adc = curr_time;
-    }
-
-    limits_ok &= CheckCurrents();
 
     if (monitor_reel || monitor_levelwind) {
         limits_ok &= CheckTorques();
@@ -173,6 +164,7 @@ bool MonitorMCB::CheckTemperatures(void)
     static String temperature_string = "";
     static uint8_t curr_sensor = 0;
     static bool measurement_ongoing = false;
+    static uint32_t last_temp_log = 0;
     bool limits_ok = true;
     float temp = 0.0f;
 
@@ -180,6 +172,7 @@ bool MonitorMCB::CheckTemperatures(void)
         ltcManager.StartMeasurement(temp_sensors[curr_sensor].channel_number);
         measurement_ongoing = true;
     } else if (ltcManager.FinishedMeasurement()) {
+        measurement_ongoing = false;
         temp = ltcManager.ReadMeasurementResult(temp_sensors[curr_sensor].channel_number);
 
         // validate reading, check limits if valid
@@ -212,7 +205,10 @@ bool MonitorMCB::CheckTemperatures(void)
 
         if (++curr_sensor == NUM_TEMP_SENSORS) {
             curr_sensor = 0;
-            storageManager.LogSD(temperature_string, TEMP_DATA);
+            if (millis() > last_temp_log + TEMP_LOG_PERIOD) {
+                storageManager.LogSD(temperature_string, TEMP_DATA);
+                last_temp_log = millis();
+            }
             temperature_string = "";
         }
     }
@@ -222,83 +218,97 @@ bool MonitorMCB::CheckTemperatures(void)
 
 bool MonitorMCB::CheckVoltages(void)
 {
+    static String voltage_string = "";
+    static uint8_t curr_channel = 0;
+    static uint32_t last_volt_log = 0;
     bool limits_ok = true;
     float raw = 0.0f;
-    String voltage_string = "";
 
-    for (int i = 0; i < NUM_VMON_CHANNELS; i++) {
-        // read channel
-        raw = analogRead(vmon_channels[i].channel_pin);
+    // read channel
+    raw = analogRead(vmon_channels[curr_channel].channel_pin);
 
-        // calculate voltage given the resistor divider network
-        vmon_channels[i].last_voltage = VREF * (raw / MAX_ADC_READ) / vmon_channels[i].voltage_divider;
+    // calculate voltage given the resistor divider network
+    vmon_channels[curr_channel].last_voltage = VREF * (raw / MAX_ADC_READ) / vmon_channels[curr_channel].voltage_divider;
 
-        // check limits
-        if (vmon_channels[i].last_voltage > vmon_channels[i].limit_hi) {
-            if (!vmon_channels[i].over_voltage) { // if newly over
-                storageManager.LogSD("Over voltage", ERR_DATA);
-                vmon_channels[i].over_voltage = true;
-                vmon_channels[i].under_voltage = false;
-            }
-            limits_ok = false;
-        } else if (vmon_channels[i].last_voltage < vmon_channels[i].limit_lo) {
-            if (!vmon_channels[i].under_voltage) { // if newly under
-                storageManager.LogSD("Under voltage", ERR_DATA);
-                vmon_channels[i].over_voltage = false;
-                vmon_channels[i].under_voltage = true;
-            }
-            limits_ok = false;
-        } else {
-            vmon_channels[i].over_voltage = false;
-            vmon_channels[i].under_voltage = false;
+    // check limits
+    if (vmon_channels[curr_channel].last_voltage > vmon_channels[curr_channel].limit_hi) {
+        if (!vmon_channels[curr_channel].over_voltage) { // if newly over
+            storageManager.LogSD("Over voltage", ERR_DATA);
+            vmon_channels[curr_channel].over_voltage = true;
+            vmon_channels[curr_channel].under_voltage = false;
         }
-
-        voltage_string += String(vmon_channels[i].last_voltage) + ",";
+        limits_ok = false;
+    } else if (vmon_channels[curr_channel].last_voltage < vmon_channels[curr_channel].limit_lo) {
+        if (!vmon_channels[curr_channel].under_voltage) { // if newly under
+            storageManager.LogSD("Under voltage", ERR_DATA);
+            vmon_channels[curr_channel].over_voltage = false;
+            vmon_channels[curr_channel].under_voltage = true;
+        }
+        limits_ok = false;
+    } else {
+        vmon_channels[curr_channel].over_voltage = false;
+        vmon_channels[curr_channel].under_voltage = false;
     }
 
-    storageManager.LogSD(voltage_string, VMON_DATA);
+    voltage_string += String(vmon_channels[curr_channel].last_voltage) + ",";
+
+    if (++curr_channel = NUM_VMON_CHANNELS) {
+        curr_channel = 0;
+        if (millis() > last_volt_log + VOLT_LOG_PERIOD) {
+            storageManager.LogSD(voltage_string, VMON_DATA);
+            last_volt_log = millis();
+        }
+        voltage_string = "";
+    }
 
     return limits_ok;
 }
 
 bool MonitorMCB::CheckCurrents(void)
 {
+    static String current_string = "";
+    static uint8_t curr_channel = 0;
+    static uint32_t last_curr_log = 0;
     bool limits_ok = true;
     float raw = 0.0f;
-    String current_string = "";
 
-    for (int i = 0; i < NUM_IMON_CHANNELS; i++) {
-        // read channel
-        raw = analogRead(imon_channels[i].channel_pin);
+    // read channel
+    raw = analogRead(imon_channels[curr_channel].channel_pin);
 
-        // calculate load current from sense current pin voltage (very sensitive to constants)
-        imon_channels[i].last_current = SENSE_CURR_SLOPE *
-                ((VREF / imon_channels[i].pulldown_res) * (raw / MAX_ADC_READ) - I_OFFSET);
+    // calculate load current from sense current pin voltage (very sensitive to constants)
+    imon_channels[curr_channel].last_current = SENSE_CURR_SLOPE *
+            ((VREF / imon_channels[curr_channel].pulldown_res) * (raw / MAX_ADC_READ) - I_OFFSET);
 
-        // check limits
-        if (imon_channels[i].last_current > imon_channels[i].limit_hi) {
-            if (!imon_channels[i].over_current) { // if newly over
-                storageManager.LogSD("Over current", ERR_DATA);
-                imon_channels[i].over_current = true;
-                imon_channels[i].under_current = false;
-            }
-            limits_ok = false;
-        } else if (imon_channels[i].last_current < imon_channels[i].limit_lo) {
-            if (!imon_channels[i].under_current) { // if newly under
-                storageManager.LogSD("Under current", ERR_DATA);
-                imon_channels[i].over_current = false;
-                imon_channels[i].under_current = true;
-            }
-            limits_ok = false;
-        } else {
-            imon_channels[i].over_current = false;
-            imon_channels[i].under_current = false;
+    // check limits
+    if (imon_channels[curr_channel].last_current > imon_channels[curr_channel].limit_hi) {
+        if (!imon_channels[curr_channel].over_current) { // if newly over
+            storageManager.LogSD("Over current", ERR_DATA);
+            imon_channels[curr_channel].over_current = true;
+            imon_channels[curr_channel].under_current = false;
         }
-
-        current_string += String(imon_channels[i].last_current) + ",";
+        limits_ok = false;
+    } else if (imon_channels[curr_channel].last_current < imon_channels[curr_channel].limit_lo) {
+        if (!imon_channels[curr_channel].under_current) { // if newly under
+            storageManager.LogSD("Under current", ERR_DATA);
+            imon_channels[curr_channel].over_current = false;
+            imon_channels[curr_channel].under_current = true;
+        }
+        limits_ok = false;
+    } else {
+        imon_channels[curr_channel].over_current = false;
+        imon_channels[curr_channel].under_current = false;
     }
 
-    storageManager.LogSD(current_string, IMON_DATA);
+    current_string += String(imon_channels[curr_channel].last_current) + ",";
+
+    if (++curr_channel = NUM_IMON_CHANNELS) {
+        curr_channel = 0;
+        if (millis() > last_curr_log + CURR_LOG_PERIOD) {
+            storageManager.LogSD(current_string, IMON_DATA);
+            last_curr_log = millis();
+        }
+        current_string = "";
+    }
 
     return limits_ok;
 }

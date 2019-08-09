@@ -49,7 +49,7 @@ class MCB {
 public:
 	MCB();
 	~MCB(void) { };
-	
+
 	// public interface for MCB_Main.ino
 	void Startup();
 	void Loop();
@@ -61,6 +61,10 @@ private:
 	// state machine interface
 	void RunState(void);
 	bool SetState(MCB_States_t new_state);
+
+	// Watchdog
+    void InitializeWatchdog();
+    void KickWatchdog();
 
 	// State Methods, located in States.cpp file
 	void Ready();
@@ -107,7 +111,7 @@ private:
 	// Reel and level wind objects
 	Reel reel;
 	LevelWind levelWind;
-	
+
 	// Limit monitor object
 	MonitorMCB limitMonitor;
 
