@@ -7,9 +7,9 @@
 
 #include "MonitorMCB.h"
 
-MonitorMCB::MonitorMCB(Queue * monitor_q, Queue * action_q, Reel * reel_in, LevelWind * lw_in) :
-    ltcManager(LTC_TEMP_CS_PIN, LTC_TEMP_RESET_PIN, THERM_SENSE_CH, RTD_SENSE_CH),
-    storageManager()
+MonitorMCB::MonitorMCB(Queue * monitor_q, Queue * action_q, Reel * reel_in, LevelWind * lw_in, InternalSerialDriverMCB * dibdriver)
+    : ltcManager(LTC_TEMP_CS_PIN, LTC_TEMP_RESET_PIN, THERM_SENSE_CH, RTD_SENSE_CH)
+    , storageManager()
 {
     monitor_low_power = false;
     monitor_reel = false;
@@ -18,6 +18,7 @@ MonitorMCB::MonitorMCB(Queue * monitor_q, Queue * action_q, Reel * reel_in, Leve
     action_queue = action_q;
     reel = reel_in;
     levelWind = lw_in;
+    dibDriver = dibdriver;
 }
 
 void MonitorMCB::InitializeSensors(void)
@@ -75,7 +76,6 @@ void MonitorMCB::UpdateLimits(void)
 void MonitorMCB::Monitor(void)
 {
     static uint32_t curr_time = 0;
-    static uint32_t last_temp = 0;
     static uint32_t last_adc = 0;
 
     HandleCommands();
@@ -83,9 +83,8 @@ void MonitorMCB::Monitor(void)
     bool limits_ok = true;
     curr_time = millis();
 
-    if (!monitor_low_power && (curr_time - last_temp) > TEMP_PERIOD) {
-        //limits_ok &= CheckTemperatures();
-        last_temp = curr_time;
+    if (!monitor_low_power) {
+        limits_ok &= CheckTemperatures();
     }
 
     if ((curr_time - last_adc) > ADC_PERIOD) {
@@ -100,7 +99,7 @@ void MonitorMCB::Monitor(void)
         UpdatePositions();
         PrintMotorData();
     }
-    
+
     if (!limits_ok) {
         action_queue->Push(ACT_LIMIT_EXCEEDED); // notify state manager
     }
@@ -146,6 +145,20 @@ void MonitorMCB::HandleCommands(void)
             monitor_reel = false;
             monitor_levelwind = false;
             break;
+        case MONITOR_SEND_TEMPS:
+            if (monitor_low_power) {
+                dibDriver->dibComm.TX_Temperatures(LTC_POWERED_OFF, LTC_POWERED_OFF, LTC_POWERED_OFF, LTC_POWERED_OFF, LTC_POWERED_OFF, LTC_POWERED_OFF);
+            } else {
+                dibDriver->dibComm.TX_Temperatures(temp_sensors[0].last_temperature, temp_sensors[1].last_temperature, temp_sensors[2].last_temperature,
+                                                   temp_sensors[3].last_temperature, temp_sensors[4].last_temperature, temp_sensors[5].last_temperature);
+            }
+            break;
+        case MONITOR_SEND_VOLTS:
+            dibDriver->dibComm.TX_Voltages(vmon_channels[0].last_voltage, vmon_channels[1].last_voltage, vmon_channels[2].last_voltage, vmon_channels[3].last_voltage);
+            break;
+        case MONITOR_SEND_CURRS:
+            dibDriver->dibComm.TX_Currents(imon_channels[0].last_current, imon_channels[1].last_current, imon_channels[2].last_current, imon_channels[3].last_current);
+            break;
         case UNUSED_COMMAND:
         default:
             storageManager.LogSD("Unknown monitor queue error", ERR_DATA);
@@ -154,46 +167,55 @@ void MonitorMCB::HandleCommands(void)
     }
 }
 
+// measures one sensor at a time in a non-blocking fashion
 bool MonitorMCB::CheckTemperatures(void)
 {
+    static String temperature_string = "";
+    static uint8_t curr_sensor = 0;
+    static bool measurement_ongoing = false;
     bool limits_ok = true;
     float temp = 0.0f;
-    String temperature_string = "";
 
-    for (int i = 0; i < NUM_TEMP_SENSORS; i++) {
-        // read channel
-        temp = ltcManager.MeasureChannel(temp_sensors[i].channel_number);
-        
+    if (!measurement_ongoing) {
+        ltcManager.StartMeasurement(temp_sensors[curr_sensor].channel_number);
+        measurement_ongoing = true;
+    } else if (ltcManager.FinishedMeasurement()) {
+        temp = ltcManager.ReadMeasurementResult(temp_sensors[curr_sensor].channel_number);
+
         // validate reading, check limits if valid
         if (temp != TEMPERATURE_ERROR && temp != LTC_SENSOR_ERROR) {
-            temp_sensors[i].last_temperature = temp;
+            temp_sensors[curr_sensor].last_temperature = temp;
 
-            if (temp > temp_sensors[i].limit_hi) {
-                if (!temp_sensors[i].over_temp) { // if newly over
+            if (temp > temp_sensors[curr_sensor].limit_hi) {
+                if (!temp_sensors[curr_sensor].over_temp) { // if newly over
                     storageManager.LogSD("Over temperature", ERR_DATA);
-                    temp_sensors[i].over_temp = true;
-                    temp_sensors[i].under_temp = false;
+                    temp_sensors[curr_sensor].over_temp = true;
+                    temp_sensors[curr_sensor].under_temp = false;
                 }
                 limits_ok = false;
-            } else if (temp < temp_sensors[i].limit_lo) {
-                if (!temp_sensors[i].under_temp) { // if newly under
+            } else if (temp < temp_sensors[curr_sensor].limit_lo) {
+                if (!temp_sensors[curr_sensor].under_temp) { // if newly under
                     storageManager.LogSD("Under temperature", ERR_DATA);
-                    temp_sensors[i].over_temp = false;
-                    temp_sensors[i].under_temp = true;
+                    temp_sensors[curr_sensor].over_temp = false;
+                    temp_sensors[curr_sensor].under_temp = true;
                 }
                 limits_ok = false;
             } else {
-                temp_sensors[i].over_temp = false;
-                temp_sensors[i].under_temp = false;
+                temp_sensors[curr_sensor].over_temp = false;
+                temp_sensors[curr_sensor].under_temp = false;
             }
         } else {
-            temp_sensors[i].sensor_error = true;
+            temp_sensors[curr_sensor].sensor_error = true;
         }
 
         temperature_string += String(temp) + ",";
+
+        if (++curr_sensor == NUM_TEMP_SENSORS) {
+            curr_sensor = 0;
+            storageManager.LogSD(temperature_string, TEMP_DATA);
+            temperature_string = "";
+        }
     }
-    
-    storageManager.LogSD(temperature_string, TEMP_DATA);
 
     return limits_ok;
 }
@@ -250,7 +272,7 @@ bool MonitorMCB::CheckCurrents(void)
         raw = analogRead(imon_channels[i].channel_pin);
 
         // calculate load current from sense current pin voltage (very sensitive to constants)
-        imon_channels[i].last_current = SENSE_CURR_SLOPE * 
+        imon_channels[i].last_current = SENSE_CURR_SLOPE *
                 ((VREF / imon_channels[i].pulldown_res) * (raw / MAX_ADC_READ) - I_OFFSET);
 
         // check limits

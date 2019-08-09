@@ -14,13 +14,13 @@
 MCB::MCB()
     : action_queue(10)
 	, monitor_queue(10)
-	, dibDriver(&action_queue)
+	, dibDriver(&action_queue, &monitor_queue)
 	, debugPort(&action_queue, &dibDriver)
 	, powerController()
     , storageManager()
 	, reel(1)
 	, levelWind(1)
-	, limitMonitor(&monitor_queue, &action_queue, &reel, &levelWind)
+	, limitMonitor(&monitor_queue, &action_queue, &reel, &levelWind, &dibDriver)
 {
     last_pos_print = millis();
 }
@@ -167,11 +167,11 @@ void MCB::PerformActions(void)
 			EEPROM_UPDATE_FLOAT(storageManager, dock_acceleration, dibDriver.mcbParameters.dock_acceleration);
 			break;
 		case ACT_ZERO_REEL:
-			ReelControllerOn();
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
+				ReelControllerOn();
 				reel.SetPosition(0.0f);
+				ReelControllerOff();
 			}
-			ReelControllerOff();
 			break;
 		case ACT_LIMIT_EXCEEDED:
 			if (curr_state != ST_READY) {
@@ -259,6 +259,8 @@ void MCB::LogFault(void)
 
 bool MCB::ReelControllerOn(void)
 {
+	if (reel_initialized) return true;
+
 	powerController.ReelOn();
 
 	// wait for boot
@@ -298,6 +300,8 @@ bool MCB::ReelControllerOn(void)
 
 bool MCB::LevelWindControllerOn(void)
 {
+	if (levelwind_initialized) return true;
+
 	// reel must be started first
 	if (!reel_initialized) return false;
 

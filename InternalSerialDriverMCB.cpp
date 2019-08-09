@@ -8,11 +8,12 @@
 
 #include "InternalSerialDriverMCB.h"
 
-InternalSerialDriverMCB::InternalSerialDriverMCB(Queue* state_q)
+InternalSerialDriverMCB::InternalSerialDriverMCB(Queue * state_q, Queue * monitor_q)
     : dibComm(&DIB_SERIAL)
     , storageManager()
 {
     state_queue = state_q;
+	monitor_queue = monitor_q;
 }
 
 void InternalSerialDriverMCB::RunDriver(void)
@@ -43,19 +44,19 @@ void InternalSerialDriverMCB::HandleASCII(void)
 		dibComm.TX_Ack(MCB_GO_LOW_POWER, true);
 		break;
 	case MCB_HOME_LW:
-		// todo: action
+		state_queue->Push(ACT_HOME_LW);
 		break;
 	case MCB_ZERO_REEL:
-		// todo: action
+		state_queue->Push(ACT_ZERO_REEL);
 		break;
 	case MCB_GET_TEMPERATURES:
-		// todo: send to monitor
+		monitor_queue->Push(MONITOR_SEND_TEMPS);
 		break;
 	case MCB_GET_VOLTAGES:
-		// todo: send to monitor
+		monitor_queue->Push(MONITOR_SEND_VOLTS);
 		break;
 	case MCB_GET_CURRENTS:
-		// todo: send to monitor
+		monitor_queue->Push(MONITOR_SEND_CURRS);
 		break;
 	// messages that have parameters to parse -------------
 	case MCB_REEL_OUT:

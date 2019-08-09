@@ -36,7 +36,7 @@ struct MCBParameters_t {
 
 class InternalSerialDriverMCB {
 public:
-	InternalSerialDriverMCB(Queue * state_q);
+	InternalSerialDriverMCB(Queue * state_q, Queue * monitor_q);
 	~InternalSerialDriverMCB(void) { };
 
 	void RunDriver(void);
@@ -50,6 +50,7 @@ private:
 
 	// Interface objects
 	Queue * state_queue;
+	Queue * monitor_queue;
 
 	StorageManagerMCB storageManager;
 };

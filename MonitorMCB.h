@@ -8,6 +8,7 @@
 #ifndef MONITORMCB_H_
 #define MONITORMCB_H_
 
+#include "InternalSerialDriverMCB.h"
 #include "StorageManagerMCB.h"
 #include "LTC2983Manager.h"
 #include "ActionsMCB.h"
@@ -16,16 +17,7 @@
 #include "Queue.h"
 #include <stdint.h>
 
-#define TEMP_PERIOD     5000 // min period for temperature measurements in millis
 #define ADC_PERIOD      500  // min period for voltage/current measurements in millis
-
-enum Monitor_Command_t : uint8_t {
-    MONITOR_BOTH_MOTORS_ON,
-    MONITOR_REEL_ON,
-    MONITOR_MOTORS_OFF,
-    MONITOR_LOW_POWER,
-    UNUSED_COMMAND
-};
 
 enum Motor_Torque_Index_t : uint8_t {
     REEL_INDEX = 0,
@@ -75,9 +67,9 @@ struct Motor_Torque_t {
 
 class MonitorMCB {
 public:
-    MonitorMCB(Queue * monitor_q, Queue * action_q, Reel * reel_in, LevelWind * lw_in);
+    MonitorMCB(Queue * monitor_q, Queue * action_q, Reel * reel_in, LevelWind * lw_in, InternalSerialDriverMCB * dibdriver);
     ~MonitorMCB(void) { };
-    
+
     // interface methods
     void InitializeSensors(void);
     void UpdateLimits(void);
@@ -106,9 +98,10 @@ private:
 	StorageManagerMCB storageManager;
     LevelWind * levelWind;
     Reel * reel;
+    InternalSerialDriverMCB * dibDriver;
 
     // temperature sensor table (hard-coded limits will be replace at init from EEPROM)
-    Temp_Sensor_t temp_sensors[NUM_TEMP_SENSORS] = 
+    Temp_Sensor_t temp_sensors[NUM_TEMP_SENSORS] =
         /* last_temp | limit_hi | limit_lo | channel_num    | channel_type     | sens_err | over_temp | under_temp */
         {{ 0.0f,       100.0f,     -100.0f,  MTR1_THERM_CH,   THERMISTOR_44006,  false,     false,      false},
          { 0.0f,       100.0f,     -100.0f,  MTR2_THERM_CH,   THERMISTOR_44006,  false,     false,      false},
@@ -124,16 +117,16 @@ private:
          { 0.0f,       20.0f,     12.0f,     0.102f,    A_VMON_15V,     false,      false},
          { 0.0f,       26.0f,     18.0f,     0.0746f,   A_VMON_20V,     false,      false},
          { 0.0f,       3.6f,      0.0f,      1,         A_SPOOL_LEVEL,  false,      false}};
-    
+
     // current ADC channel table (hard-coded limits will be replaced at init from EEPROM)
-    ADC_Current_t imon_channels[NUM_IMON_CHANNELS] = 
+    ADC_Current_t imon_channels[NUM_IMON_CHANNELS] =
         /* last_curr | limit_hi | limit_lo | pulldown_res | channel_pin  | over_curr | under_curr */
         {{ 0.0f,       5.0f,      -2.0f,     RES_15K,       A_IMON_BRK,    false,      false},
          { 0.0f,       5.0f,      -2.0f,     RES_15K,       A_IMON_MC,     false,      false},
          { 0.0f,       4.5f,      -2.0f,     RES_2K,        A_IMON_MTR1,   false,      false},
          { 0.0f,       5.0f,      -2.0f,     RES_2K,        A_IMON_MTR2,   false,      false}};
 
-    Motor_Torque_t motor_torques[2] = 
+    Motor_Torque_t motor_torques[2] =
         /* last torque | limit_hi | limit_lo | conversion | read_error | over_torque | under_torque */
         {{0.0f,          500.0f,    -500.0f,   500.0f,      false,       false,        false},
          {0.0f,          500.0f,    -500.0f,   1.0f,        false,       false,        false}};
