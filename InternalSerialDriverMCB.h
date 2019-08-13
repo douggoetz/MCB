@@ -40,6 +40,9 @@ public:
 	~InternalSerialDriverMCB(void) { };
 
 	void RunDriver(void);
+	void RunDebugDriver(void);
+
+	void PrintDebugMenu(void);
 
 	MCBComm dibComm;
 
@@ -47,6 +50,8 @@ public:
 
 private:
 	void HandleASCII(void);
+
+	void PrintDebugCommand(uint8_t cmd, const char * description);
 
 	// Interface objects
 	Queue * state_queue;

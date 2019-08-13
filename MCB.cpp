@@ -14,10 +14,9 @@
 MCB::MCB()
     : action_queue(10)
 	, monitor_queue(10)
-	, dibDriver(&action_queue, &monitor_queue)
-	, debugPort(&action_queue, &dibDriver)
 	, powerController()
     , storageManager()
+	, dibDriver(&action_queue, &monitor_queue)
 	, reel(1)
 	, levelWind(1)
 	, limitMonitor(&monitor_queue, &action_queue, &reel, &levelWind, &dibDriver)
@@ -58,7 +57,7 @@ void MCB::Startup()
 // note that the loop timing is controlled in MCB_Main.ino
 void MCB::Loop()
 {
-	debugPort.RunDebugPort();
+	dibDriver.RunDebugDriver();
 	dibDriver.RunDriver();
 	PerformActions();
 	RunState();
@@ -158,35 +157,56 @@ void MCB::PerformActions(void)
 			// only deploy if not currently performing reel operation
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
 				SetState(ST_REEL_OUT);
+			} else {
+				dibDriver.dibComm.TX_Error("Deploy denied, reel ops ongoing");
 			}
-			dibDriver.dibComm.TX_Error("Deploy denied, reel ops ongoing");
 			break;
 		case ACT_RETRACT_X:
 			// only retract if not currently performing reel operation
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
 				SetState(ST_REEL_IN);
+			} else {
+				dibDriver.dibComm.TX_Error("Retract denied, reel ops ongoing");
 			}
-			dibDriver.dibComm.TX_Error("Retract denied, reel ops ongoing");
 			break;
 		case ACT_DOCK:
 			// only dock if not currently performing reel operation
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
 				SetState(ST_DOCK);
+			} else {
+				dibDriver.dibComm.TX_Error("Dock denied, reel ops ongoing");
 			}
-			dibDriver.dibComm.TX_Error("Dock denied, reel ops ongoing");
 			break;
 		case ACT_HOME_LW:
 			// only home if not currently performing reel operation
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
 				SetState(ST_HOME_LW);
+			} else {
+				dibDriver.dibComm.TX_Error("Home denied, reel ops ongoing");
 			}
-			dibDriver.dibComm.TX_Error("Home denied, reel ops ongoing");
 			break;
 		case ACT_BRAKE_ON:
 			reel.BrakeOn();
 			break;
 		case ACT_BRAKE_OFF:
-			reel.BrakeOff();
+			if (reel_initialized) {
+				reel.BrakeOff();
+			} else {
+				dibDriver.dibComm.TX_Error("Reel not initialized for brake");
+			}
+			break;
+		case ACT_CONTROLLERS_ON:
+			if (curr_state == ST_READY) {
+				if (!ReelControllerOn() || !LevelWindControllerOn()) {
+					dibDriver.dibComm.TX_Error("Error powering controllers");
+				}
+			} else {
+				dibDriver.dibComm.TX_Error("Wrong state for powering controllers");
+			}
+			break;
+		case ACT_CONTROLLERS_OFF:
+			ReelControllerOff();
+			LevelWindControllerOff();
 			break;
 		case ACT_SET_DEPLOY_V:
 			EEPROM_UPDATE_FLOAT(storageManager, deploy_velocity, dibDriver.mcbParameters.deploy_velocity);

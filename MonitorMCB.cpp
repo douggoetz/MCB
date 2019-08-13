@@ -252,7 +252,7 @@ bool MonitorMCB::CheckVoltages(void)
 
     voltage_string += String(vmon_channels[curr_channel].last_voltage) + ",";
 
-    if (++curr_channel = NUM_VMON_CHANNELS) {
+    if (++curr_channel == NUM_VMON_CHANNELS) {
         curr_channel = 0;
         if (millis() > last_volt_log + VOLT_LOG_PERIOD) {
             storageManager.LogSD(voltage_string, VMON_DATA);
@@ -301,7 +301,7 @@ bool MonitorMCB::CheckCurrents(void)
 
     current_string += String(imon_channels[curr_channel].last_current) + ",";
 
-    if (++curr_channel = NUM_IMON_CHANNELS) {
+    if (++curr_channel == NUM_IMON_CHANNELS) {
         curr_channel = 0;
         if (millis() > last_curr_log + CURR_LOG_PERIOD) {
             storageManager.LogSD(current_string, IMON_DATA);

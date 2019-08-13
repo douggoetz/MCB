@@ -3,9 +3,9 @@
  *  Definition of a class to control the reel
  *  Author: Alex St. Clair
  *  January 2018
- *  
+ *
  *  This file defines an Arduino library (C++ class) that controls
- *  the reel. It inherits from the Technosoft class, which implements 
+ *  the reel. It inherits from the Technosoft class, which implements
  *  communication with the Technosoft motor controllers.
  *
  *  Units:
@@ -42,14 +42,14 @@
 #endif
 
 #ifdef INST_FLOATS // defined in HardwareMCB.h
-#define REEL_UNITS_PER_REV	344.0
-#define SPEED_CONVERSION	0.00459 // iu/rpm
-#define DEFAULT_FULL_SPEED	60.0	// rpm
-#define DEFAULT_DOCK_SPEED	60.0	// rpm
-#define ACC_CONVERSION		0.000035
-#define DEFAULT_ACC			20.0	// rot/s^2
-#define MAX_ACC				25.0	// rot/s^2
-#define MAX_SPEED			120.0 	// rpm
+// #define REEL_UNITS_PER_REV	344.0
+// #define SPEED_CONVERSION	0.00459 // iu/rpm
+// #define DEFAULT_FULL_SPEED	60.0	// rpm
+// #define DEFAULT_DOCK_SPEED	60.0	// rpm
+// #define ACC_CONVERSION		0.000035
+// #define DEFAULT_ACC			20.0	// rot/s^2
+// #define MAX_ACC				25.0	// rot/s^2
+// #define MAX_SPEED			120.0 	// rpm
 #endif
 
 // Technosoft function addresses
@@ -63,12 +63,12 @@
 #endif
 
 #ifdef INST_FLOATS // defined in HardwareMCB.h
-#define STOP_PROFILE_R		0x4026
-#define REEL_VARIABLE_R		0x402B
-#define CAM_SETUP_R			0x4046
-#define CAM_STOP_R			0x4054
-#define BRAKE_ON_R			0x405A
-#define BRAKE_OFF_R			0x405F
+// #define STOP_PROFILE_R		0x4026
+// #define REEL_VARIABLE_R		0x402B
+// #define CAM_SETUP_R			0x4046
+// #define CAM_STOP_R			0x4054
+// #define BRAKE_ON_R			0x405A
+// #define BRAKE_OFF_R			0x405F
 #endif
 
 // Position logging in case of power cycle

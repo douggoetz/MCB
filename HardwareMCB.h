@@ -3,7 +3,7 @@
  *  Centralized hardware definitions for the motor control board
  *  Author: Alex St. Clair
  *  Created: December, 2017
- *  
+ *
  *  This file defines Teensy pins and other hardware specifications
  *  relevant to the motor control board.
  */
@@ -14,8 +14,8 @@
 #include <stdint.h>
 
 // Which instrument?
-//#define INST_RACHUTS
-#define INST_FLOATS
+#define INST_RACHUTS
+//#define INST_FLOATS
 
 // Pin definitions
 #define MC1_IN1_PIN				2

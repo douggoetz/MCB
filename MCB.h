@@ -17,7 +17,6 @@
 
 #include "MCBBufferGuard.h"
 #include "InternalSerialDriverMCB.h"
-#include "DebugPortMCB.h"
 #include "LTC2983Manager.h"
 #include "PowerControllerMCB.h"
 #include "StorageManagerMCB.h"
@@ -100,13 +99,12 @@ private:
 	Queue action_queue;
 	Queue monitor_queue;
 
-	// Serial interface objects
-	InternalSerialDriverMCB dibDriver;
-	DebugPortMCB debugPort;
-
 	// Hardware objects
 	PowerControllerMCB powerController;
 	StorageManagerMCB storageManager;
+
+	// Serial interface objects
+	InternalSerialDriverMCB dibDriver;
 
 	// Reel and level wind objects
 	Reel reel;

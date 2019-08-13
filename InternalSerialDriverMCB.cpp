@@ -31,6 +31,31 @@ void InternalSerialDriverMCB::RunDriver(void)
 	}
 }
 
+void InternalSerialDriverMCB::RunDebugDriver(void)
+{
+	SerialMessage_t rx_msg = NO_MESSAGE;
+	char peek_char = '\0';
+
+	// switch to USB serial for those messages
+	dibComm.UpdatePort(&Serial);
+
+	peek_char = Serial.peek();
+	if ('m' == peek_char) {
+		// print menu
+	} else {
+		while (rx_msg != NO_MESSAGE) {
+			if (rx_msg == ASCII_MESSAGE) {
+				HandleASCII();
+			}
+
+			rx_msg = dibComm.RX();
+		}
+	}
+
+	// switch back to the DIB
+	dibComm.UpdatePort(&DIB_SERIAL);
+}
+
 void InternalSerialDriverMCB::HandleASCII(void)
 {
 	switch (dibComm.ascii_rx.msg_id) {
@@ -57,6 +82,18 @@ void InternalSerialDriverMCB::HandleASCII(void)
 		break;
 	case MCB_GET_CURRENTS:
 		monitor_queue->Push(MONITOR_SEND_CURRS);
+		break;
+	case MCB_BRAKE_ON:
+		state_queue->Push(ACT_BRAKE_ON);
+		break;
+	case MCB_BRAKE_OFF:
+		state_queue->Push(ACT_BRAKE_OFF);
+		break;
+	case MCB_CONTROLLERS_ON:
+		state_queue->Push(ACT_CONTROLLERS_ON);
+		break;
+	case MCB_CONTROLLERS_OFF:
+		state_queue->Push(ACT_CONTROLLERS_OFF);
 		break;
 	// messages that have parameters to parse -------------
 	case MCB_REEL_OUT:
@@ -96,4 +133,36 @@ void InternalSerialDriverMCB::HandleASCII(void)
 		storageManager.LogSD("Unknown DIB RX message", ERR_DATA);
 		break;
 	}
+}
+
+void InternalSerialDriverMCB::PrintDebugMenu()
+{
+	Serial.println("---- Debug Menu ----");
+	PrintDebugCommand(MCB_CANCEL_MOTION, ";\t(cancel motion)");
+	PrintDebugCommand(MCB_GO_LOW_POWER, ";\t(low power)");
+	PrintDebugCommand(MCB_HOME_LW, ";\t(home level wind)");
+	PrintDebugCommand(MCB_ZERO_REEL, ";\t(zero reel)");
+	PrintDebugCommand(MCB_GET_TEMPERATURES, ";\t(get temps)");
+	PrintDebugCommand(MCB_GET_VOLTAGES, ";\t(get volts)");
+	PrintDebugCommand(MCB_GET_CURRENTS, ";\t(get currs)");
+	PrintDebugCommand(MCB_BRAKE_ON, ";\t(brake on)");
+	PrintDebugCommand(MCB_BRAKE_OFF, ";\t(brake off)");
+	PrintDebugCommand(MCB_CONTROLLERS_ON, ";\t(controllers on)");
+	PrintDebugCommand(MCB_CONTROLLERS_OFF, ";\t(controllers off)");
+	Serial.println("--------------------");
+	PrintDebugCommand(MCB_REEL_OUT, ",num_revs,speed;\t(reel out)");
+	PrintDebugCommand(MCB_REEL_IN, ",num_revs,speed;\t(reel in)");
+	PrintDebugCommand(MCB_DOCK, ",num_revs,speed;\t(dock)");
+	PrintDebugCommand(MCB_OUT_ACC, ",acc;\t(out acceleration)");
+	PrintDebugCommand(MCB_IN_ACC, ",acc;\t(in acceleration)");
+	PrintDebugCommand(MCB_DOCK_ACC, ",acc;\t(dock acceleration)");
+	Serial.println("--------------------");
+}
+
+void InternalSerialDriverMCB::PrintDebugCommand(uint8_t cmd, const char * description)
+{
+	Serial.print("#");
+	Serial.print(cmd);
+	Serial.println(description);
+	delay(1);
 }
