@@ -86,7 +86,7 @@ private:
 	// Helper functions
 	void PrintBootInfo(void);
 	void CheckReel(void);
-	void CheckLevelWind(void);
+	bool CheckLevelWind(void); // returns true iff motion complete
 	void LogFault(void);
 
 	// Reel and level wind power control
@@ -123,6 +123,7 @@ private:
 	bool levelwind_initialized = false;
 	bool camming = false;
 	bool homed = false;
+	bool lw_docked = false;
 
 	// The current substate
 	uint8_t substate = ENTRY_SUBSTATE;

@@ -41,8 +41,10 @@ void InternalSerialDriverMCB::RunDebugDriver(void)
 
 	peek_char = Serial.peek();
 	if ('m' == peek_char) {
-		// print menu
+		Serial.read(); // clear the 'm'
+		PrintDebugMenu();
 	} else {
+		rx_msg = dibComm.RX();
 		while (rx_msg != NO_MESSAGE) {
 			if (rx_msg == ASCII_MESSAGE) {
 				HandleASCII();
@@ -66,7 +68,9 @@ void InternalSerialDriverMCB::HandleASCII(void)
 		break;
 	case MCB_GO_LOW_POWER:
 		state_queue->Push(ACT_SWITCH_NOMINAL);
-		dibComm.TX_Ack(MCB_GO_LOW_POWER, true);
+		break;
+	case MCB_GO_READY:
+		state_queue->Push(ACT_SWITCH_READY);
 		break;
 	case MCB_HOME_LW:
 		state_queue->Push(ACT_HOME_LW);
@@ -140,6 +144,7 @@ void InternalSerialDriverMCB::PrintDebugMenu()
 	Serial.println("---- Debug Menu ----");
 	PrintDebugCommand(MCB_CANCEL_MOTION, ";\t(cancel motion)");
 	PrintDebugCommand(MCB_GO_LOW_POWER, ";\t(low power)");
+	PrintDebugCommand(MCB_GO_READY, ";\t(ready)");
 	PrintDebugCommand(MCB_HOME_LW, ";\t(home level wind)");
 	PrintDebugCommand(MCB_ZERO_REEL, ";\t(zero reel)");
 	PrintDebugCommand(MCB_GET_TEMPERATURES, ";\t(get temps)");

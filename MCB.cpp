@@ -136,6 +136,7 @@ void MCB::KickWatchdog()
 void MCB::PerformActions(void)
 {
 	uint8_t action;
+
 	while (!action_queue.IsEmpty()) {
 		action = ACT_UNUSED;
 		if (!action_queue.Pop(&action)) {
@@ -148,7 +149,7 @@ void MCB::PerformActions(void)
 			break;
 		case ACT_SWITCH_NOMINAL:
 			if (curr_state == ST_NOMINAL) {
-				// todo: ack here?
+				substate = ENTRY_SUBSTATE; // restart nominal, not a problem, will send ACK
 			} else {
 				SetState(ST_NOMINAL);
 			}
@@ -219,17 +220,24 @@ void MCB::PerformActions(void)
 			break;
 		case ACT_SET_DEPLOY_A:
 			EEPROM_UPDATE_FLOAT(storageManager, deploy_acceleration, dibDriver.mcbParameters.deploy_acceleration);
+			dibDriver.dibComm.TX_Ack(MCB_OUT_ACC,true);
 			break;
 		case ACT_SET_RETRACT_A:
 			EEPROM_UPDATE_FLOAT(storageManager, retract_acceleration, dibDriver.mcbParameters.retract_acceleration);
+			dibDriver.dibComm.TX_Ack(MCB_IN_ACC,true);
 			break;
 		case ACT_SET_DOCK_A:
 			EEPROM_UPDATE_FLOAT(storageManager, dock_acceleration, dibDriver.mcbParameters.dock_acceleration);
+			dibDriver.dibComm.TX_Ack(MCB_DOCK_ACC,true);
 			break;
 		case ACT_ZERO_REEL:
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
 				ReelControllerOn();
-				reel.SetPosition(0.0f);
+				if (reel.SetPosition(0.0f)) {
+					dibDriver.dibComm.TX_Ack(MCB_ZERO_REEL, true);
+				} else {
+					dibDriver.dibComm.TX_Ack(MCB_ZERO_REEL, false);
+				}
 				ReelControllerOff();
 			}
 			break;
@@ -259,8 +267,7 @@ void MCB::CheckReel(void)
 
 	if (reel.drive_status.fault) {
 		Serial.println("Motion fault (reel)");
-		action_queue.Push(ACT_SWITCH_READY);
-		dibDriver.dibComm.TX_ASCII(MCB_MOTION_FINISHED);
+		action_queue.Push(ACT_SWITCH_NOMINAL);
 		LogFault();
 	} else if (reel.drive_status.motion_complete) {
 		Serial.println("Reel motion complete");
@@ -269,21 +276,24 @@ void MCB::CheckReel(void)
 	}
 }
 
-
-void MCB::CheckLevelWind(void)
+// returns true if and only if motion complete
+bool MCB::CheckLevelWind(void)
 {
 	if (!levelWind.UpdateDriveStatus()) {
 		storageManager.LogSD("Error updating level wind drive status", ERR_DATA);
-		return;
+		return false;
 	}
 
 	if (levelWind.drive_status.fault) {
-		action_queue.Push(ACT_SWITCH_READY);
+		action_queue.Push(ACT_SWITCH_NOMINAL);
 		Serial.println("Motion fault (lw)");
 		LogFault();
+		return false;
 	} else if (levelWind.drive_status.motion_complete) {
 		Serial.println("Level wind motion complete");
+		return true;
 	}
+	return false;
 }
 
 
@@ -314,6 +324,11 @@ void MCB::LogFault(void)
 		fault_string += String(levelWind.drive_fault.motion_err, HEX);
 		storageManager.LogSD(fault_string.c_str(), ERR_DATA);
 	}
+
+	dibDriver.dibComm.TX_Motion_Fault(reel.drive_fault.status_lo, reel.drive_fault.status_hi,
+									  reel.drive_fault.detailed_err, reel.drive_fault.motion_err,
+									  levelWind.drive_fault.status_lo, levelWind.drive_fault.status_hi,
+									  levelWind.drive_fault.detailed_err, levelWind.drive_fault.motion_err);
 }
 
 
@@ -387,6 +402,7 @@ void MCB::ReelControllerOff(void)
 {
 	powerController.ReelOff();
 	reel_initialized = false;
+	camming = false;
 }
 
 

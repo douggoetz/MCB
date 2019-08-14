@@ -61,7 +61,7 @@ void MCB::Ready()
 		break;
 	default:
 		storageManager.LogSD("Unknown ready substate", ERR_DATA);
-		substate = STATE_ENTRY;
+		action_queue.Push(ACT_SWITCH_NOMINAL);
 		break;
 	}
 }
@@ -75,7 +75,7 @@ void MCB::Nominal()
 		LevelWindControllerOff();
 		ReelControllerOff();
 		monitor_queue.Push(MONITOR_LOW_POWER);
-		// (?) dibDriver.dibComm.TX_Ack(MCB_GO_LOW_POWER);
+		dibDriver.dibComm.TX_Ack(MCB_GO_LOW_POWER, true);
 		substate = NOMINAL_LOOP;
 		break;
 	case NOMINAL_LOOP:
@@ -97,12 +97,13 @@ void MCB::ReelOut()
 {
 	switch (substate) {
 	case STATE_ENTRY:
-		homed = false;
-		camming = false;
-
 		if (!ReelControllerOn()) {
-			action_queue.Push(ACT_SWITCH_READY);
+			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
+		}
+
+		if (levelwind_initialized) {
+			LevelWindControllerOff();
 		}
 
 		monitor_queue.Push(MONITOR_REEL_ON);
@@ -114,10 +115,10 @@ void MCB::ReelOut()
 			reel.CamStop();
 			camming = false;
 		}
-		
+
 		if (!reel.ReelOut(dibDriver.mcbParameters.deploy_length, dibDriver.mcbParameters.deploy_velocity, storageManager.eeprom_data.deploy_acceleration)) {
 			Serial.println("Error reeling out");
-			action_queue.Push(ACT_SWITCH_READY);
+			action_queue.Push(ACT_SWITCH_NOMINAL);
 		}
 
 		Serial.print("Reeling out: ");
@@ -138,8 +139,10 @@ void MCB::ReelOut()
 		break;
 
 	case STATE_EXIT:
-		reel.StopProfile();
-		// todo: store reel position
+		if (reel.StopProfile()) {
+			delay(50); // wait a bit for motion to settle
+			reel.UpdatePosition();
+		}
 		ReelControllerOff();
 		monitor_queue.Push(MONITOR_MOTORS_OFF);
 		Serial.println("Exiting reel out");
@@ -147,8 +150,7 @@ void MCB::ReelOut()
 
 	default:
 		storageManager.LogSD("Unknown reel out substate", ERR_DATA);
-		substate = STATE_ENTRY;
-		// todo: better error handling
+		action_queue.Push(ACT_SWITCH_NOMINAL);
 		break;
 	}
 }
@@ -159,10 +161,10 @@ void MCB::ReelIn()
 	switch (substate) {
 	case STATE_ENTRY:
 		Serial.println("Entering reel in");
-		
+
 		if (!ReelControllerOn()) {
 			Serial.println("Error powering reel on");
-			action_queue.Push(ACT_SWITCH_READY);
+			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
 
@@ -172,19 +174,19 @@ void MCB::ReelIn()
 	case REEL_IN_LW_ON:
 		if (!LevelWindControllerOn()) {
 			Serial.println("Error powering LW on");
-			action_queue.Push(ACT_SWITCH_READY);
+			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
 
 		monitor_queue.Push(MONITOR_BOTH_MOTORS_ON);
-	
+
 		substate = REEL_IN_START_MOTION;
 		break;
-		
+
 	case REEL_IN_START_MOTION:
 		if (!reel.ReelIn(dibDriver.mcbParameters.retract_length, dibDriver.mcbParameters.retract_velocity, storageManager.eeprom_data.retract_acceleration)) {
 			Serial.println("Error reeling in");
-			action_queue.Push(ACT_SWITCH_READY);
+			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
 
@@ -194,33 +196,34 @@ void MCB::ReelIn()
 		if (!homed) {
 			if (!levelWind.Home()) {
 				Serial.println("Error homing lw");
-				action_queue.Push(ACT_SWITCH_READY);
+				action_queue.Push(ACT_SWITCH_NOMINAL);
 			} else {
+				lw_docked = false;
 				substate = REEL_IN_HOME;
 			}
 		} else {
 			substate = REEL_IN_START_CAM;
 		}
 		break;
-		
+
 	case REEL_IN_HOME:
 		levelWind.UpdateDriveStatus();
 		if (!(levelWind.drive_status.motion_complete || levelWind.drive_status.fault)) return;
-		
+
 		homed = true;
-		
+
 		if (!camming) {
 			substate = REEL_IN_START_CAM;
 		} else {
 			substate = REEL_IN_MONITOR;
 		}
 		break;
-		
+
 	case REEL_IN_START_CAM:
 		if (!reel.CamSetup() || !levelWind.StartCamming()) {
 			reel.StopProfile();
 			storageManager.LogSD("Error starting camming", ERR_DATA);
-			action_queue.Push(ACT_SWITCH_READY);
+			action_queue.Push(ACT_SWITCH_NOMINAL);
 			camming = false;
 			return;
 		}
@@ -228,7 +231,7 @@ void MCB::ReelIn()
 		camming = true;
 		substate = REEL_IN_MONITOR;
 		break;
-		
+
 	case REEL_IN_MONITOR:
 		// will exit once motion complete or fault
 		CheckLevelWind();
@@ -240,16 +243,23 @@ void MCB::ReelIn()
 		}
 
 		break;
-		
+
 	case STATE_EXIT:
-		reel.StopProfile();
+		if (reel.StopProfile()) {
+			delay(50); // wait a bit for motion to settle if ongoing
+			reel.UpdatePosition();
+		} else {
+			ReelControllerOff();
+			LevelWindControllerOff();
+			action_queue.Push(ACT_SWITCH_NOMINAL);
+		}
+		monitor_queue.Push(MONITOR_MOTORS_OFF);
 		Serial.println("Exiting reel in");
 		break;
-	
+
 	default:
 		storageManager.LogSD("Unknown reel in substate", ERR_DATA);
-		substate = STATE_ENTRY;
-		// todo: better error handling
+		action_queue.Push(ACT_SWITCH_NOMINAL);
 		break;
 	}
 }
@@ -260,10 +270,10 @@ void MCB::Dock()
 	switch (substate) {
 	case STATE_ENTRY:
 		Serial.println("Entering dock");
-		
-		if (!reel_initialized || !levelwind_initialized || !homed) {
+
+		if (!reel_initialized || !levelwind_initialized || (!homed && !lw_docked)) {
 			storageManager.LogSD("Not ready for dock", ERR_DATA);
-			action_queue.Push(ACT_SWITCH_READY);
+			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
 
@@ -272,22 +282,24 @@ void MCB::Dock()
 			camming = false;
 		}
 
+		monitor_queue.Push(MONITOR_BOTH_MOTORS_ON);
+
 		substate = DOCK_START_MOTION;
 		break;
 
 	case DOCK_START_MOTION:
 		if (!reel.ReelIn(dibDriver.mcbParameters.dock_length, dibDriver.mcbParameters.dock_velocity, storageManager.eeprom_data.dock_acceleration)) {
 			Serial.println("Error reeling in for dock");
-			action_queue.Push(ACT_SWITCH_READY);
+			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
 
 		Serial.print("Docking: ");
 		Serial.println(dibDriver.mcbParameters.dock_length);
 
-		if (!levelWind.SetCenter()) {
+		if (!lw_docked && !levelWind.SetCenter()) {
 			Serial.println("Error setting lw center for dock");
-			action_queue.Push(ACT_SWITCH_READY);
+			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
 
@@ -295,7 +307,7 @@ void MCB::Dock()
 		break;
 
 	case DOCK_MONITOR:
-		CheckLevelWind();
+		if (CheckLevelWind()) lw_docked = true;
 		CheckReel();
 
 		if (millis() - last_pos_print > 5000) {
@@ -306,15 +318,21 @@ void MCB::Dock()
 		break;
 
 	case STATE_EXIT:
-		Serial.println("Exiting dock");
-		reel.StopProfile();
-		levelWind.StopProfile();
+		if (reel.StopProfile() && levelWind.StopProfile()) {
+			delay(50); // wait a bit for motion to settle if ongoing
+			reel.UpdatePosition();
+		} else {
+			ReelControllerOff();
+			LevelWindControllerOff();
+			action_queue.Push(ACT_SWITCH_NOMINAL);
+		}
+		homed = false;
+		monitor_queue.Push(MONITOR_MOTORS_OFF);
 		break;
 
 	default:
 		storageManager.LogSD("Unknown dock substate", ERR_DATA);
-		substate = STATE_ENTRY;
-		// todo: better error handling
+		action_queue.Push(ACT_SWITCH_NOMINAL);
 		break;
 	}
 }
@@ -325,10 +343,10 @@ void MCB::HomeLW()
 	switch (substate) {
 	case STATE_ENTRY:
 		Serial.println("Entering home lw");
-		
+
 		if (!ReelControllerOn() || !LevelWindControllerOn()) {
 			Serial.println("Error powering controllers on");
-			action_queue.Push(ACT_SWITCH_READY);
+			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
 
@@ -337,16 +355,17 @@ void MCB::HomeLW()
 			camming = false;
 		}
 
-		substate = DOCK_START_MOTION;
+		substate = HOME_START_MOTION;
 		break;
 
 	case HOME_START_MOTION:
 		if (!levelWind.Home()) {
 			Serial.println("Error homing");
-			action_queue.Push(ACT_SWITCH_READY);
+			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
 
+		lw_docked = false;
 		substate = HOME_MONITOR;
 		break;
 
@@ -367,8 +386,7 @@ void MCB::HomeLW()
 
 	default:
 		storageManager.LogSD("Unknown home lw substate", ERR_DATA);
-		substate = STATE_ENTRY;
-		// todo: better error handling
+		action_queue.Push(ACT_SWITCH_NOMINAL);
 		break;
 	}
 }
