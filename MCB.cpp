@@ -158,6 +158,7 @@ void MCB::PerformActions(void)
 			// only deploy if not currently performing reel operation
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
 				SetState(ST_REEL_OUT);
+				dibDriver.dibComm.TX_Ack(MCB_REEL_OUT, true);
 			} else {
 				dibDriver.dibComm.TX_Error("Deploy denied, reel ops ongoing");
 			}
@@ -166,6 +167,7 @@ void MCB::PerformActions(void)
 			// only retract if not currently performing reel operation
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
 				SetState(ST_REEL_IN);
+				dibDriver.dibComm.TX_Ack(MCB_REEL_IN, true);
 			} else {
 				dibDriver.dibComm.TX_Error("Retract denied, reel ops ongoing");
 			}
@@ -174,6 +176,7 @@ void MCB::PerformActions(void)
 			// only dock if not currently performing reel operation
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
 				SetState(ST_DOCK);
+				dibDriver.dibComm.TX_Ack(MCB_DOCK, true);
 			} else {
 				dibDriver.dibComm.TX_Error("Dock denied, reel ops ongoing");
 			}
