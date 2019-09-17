@@ -70,7 +70,10 @@ public:
 
 	// Load entire EEPROM struct from physical EEPROM
 	bool LoadFromEEPROM(void); // must be called once on boot (before StartSD())
-	
+
+	// In the case of an invalid EEPROM version number or EEPROM error, reset with defaults
+	void ReconfigureEEPROM(void);
+
 	// Update an individual struct value in EEPROM
 	// Note: use the following macros instead of calling these functions!
 	bool Update_uint8(uint16_t offset, uint8_t data);

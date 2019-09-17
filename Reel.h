@@ -80,6 +80,7 @@ public:
 	bool SetPosition(float new_pos);
 	bool SetPosition(int32_t new_pos);
 	bool UpdatePosition();
+	bool UpdateSpeed();
 	void SetToStoredPosition();
 	bool StopProfile();
 	//bool ReelIn();
@@ -94,6 +95,7 @@ public:
 	void RemoveEmergencyStop();
 
 	int32_t absolute_position; // in encoder units (24000 per rotation)
+	float speed;
 private:
 	StorageManagerMCB storageManager; // supports multiple objects
 };

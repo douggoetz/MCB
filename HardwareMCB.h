@@ -106,7 +106,7 @@ enum Temp_Sensor_Indices_t {
 // EEPROM definitions
 #define EEPROM_BASE_ADDRESS		0
 #define EEPROM_MAX_ADDRESS		4095
-#define EEPROM_VERSION			(uint32_t) 0xA5C60001
+#define EEPROM_VERSION			(uint32_t) 0xA5C60002
 
 // EEPROM data layout, note: will not pack, so try to arrange in 32-bit blocks
 struct EEPROM_Data_t {
@@ -168,6 +168,10 @@ struct EEPROM_Data_t {
 	float reel_torque_lo;
 	float lw_torque_hi;
 	float lw_torque_lo;
+
+	// telemetry sample averaging numbers
+	uint8_t tmslow_num_samples;
+	uint8_t tmfast_num_samples;
 };
 
 #endif

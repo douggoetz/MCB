@@ -3,9 +3,9 @@
  *  Implementation of a class to control the reel
  *  Author: Alex St. Clair
  *  January 2018
- *  
+ *
  *  This file defines an Arduino library (C++ class) that controls
- *  the reel. It inherits from the Technosoft class, which implements 
+ *  the reel. It inherits from the Technosoft class, which implements
  *  communication with the Technosoft motor controllers.
  */
 
@@ -16,6 +16,7 @@ Reel::Reel(uint8_t expeditor_axis) : Technosoft(REEL_AXIS, expeditor_axis) {
 	pinMode(MC1_IN4_PIN, OUTPUT); // limit switch negative (emergency stop)
 	digitalWrite(MC1_IN4_PIN, HIGH);
 	absolute_position = 0;
+	speed = 0.0f;
 }
 
 bool Reel::SetPosition(float new_pos) {
@@ -47,6 +48,11 @@ bool Reel::UpdatePosition() {
 		return true;
 	}
 	return false;
+}
+
+bool Reel::UpdateSpeed() {
+	speed = ReadActualSpeed();
+	return 0.0f == speed;
 }
 
 void Reel::SetToStoredPosition() {
@@ -82,7 +88,7 @@ bool Reel::ReelIn(float num_revolutions, float speed, float acc) {
 
 	// implicit cast to uint32 for serialization
 	num_units = num_revolutions * REEL_UNITS_PER_REV;
-	
+
 	// Technosoft unit conversions
 	speed = speed * SPEED_CONVERSION;
 	acc = acc * ACC_CONVERSION;

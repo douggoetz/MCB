@@ -9,6 +9,7 @@
  */
 
 #include "StorageManagerMCB.h"
+#include "Reel.h"
 
 bool StorageManagerMCB::sd_state = false;
 EEPROM_Data_t StorageManagerMCB::eeprom_data = {0};
@@ -162,7 +163,7 @@ bool StorageManagerMCB::FileWrite(const char * filename, uint8_t * buffer, uint1
 
 uint16_t StorageManagerMCB::FileRead(const char * filename, uint8_t * buffer, uint16_t read_size, uint16_t position) {
 	uint16_t bytes_read = 0;
-	
+
 	if (!sd_state) {
 		return bytes_read;
 	}
@@ -228,7 +229,7 @@ bool StorageManagerMCB::LoadFromEEPROM(void) {
 
 	// check for a valid eeprom struct version, but don't stop if invalid in case we're in flight
 	if (eeprom_data.eeprom_version != EEPROM_VERSION) {
-		Serial.println("Invalid EEPROM data version: recommend reflashing!");
+		Serial.println("Invalid EEPROM data version!");
 		return false;
 	}
 
@@ -285,4 +286,72 @@ bool StorageManagerMCB::Update_float(uint16_t offset, float data) {
 	EEPROM.put(EEPROM_BASE_ADDRESS + offset, data);
 
 	return true;
+}
+
+void StorageManagerMCB::ReconfigureEEPROM() {
+	// configuration management
+	eeprom_data.eeprom_version = EEPROM_VERSION;
+
+	// for software use
+	eeprom_data.boot_count = 0;
+
+	// versioning
+	eeprom_data.hardware_version[0] = 'C';
+	eeprom_data.hardware_version[1] = '0';
+	eeprom_data.software_version    = 0;
+	eeprom_data.serial_number       = 2;
+
+	// default motion parameters
+	eeprom_data.deploy_velocity      = DEFAULT_FULL_SPEED;
+	eeprom_data.deploy_acceleration  = DEFAULT_ACC;
+	eeprom_data.retract_velocity     = DEFAULT_FULL_SPEED;
+	eeprom_data.retract_acceleration = DEFAULT_ACC;
+	eeprom_data.dock_velocity        = DEFAULT_DOCK_SPEED;
+	eeprom_data.dock_acceleration    = DEFAULT_ACC;
+
+	// temperature limits (in degrees C)
+	eeprom_data.mtr1_temp_hi   = 80.0f;
+	eeprom_data.mtr1_temp_lo   = -50.0f;
+	eeprom_data.mtr2_temp_hi   = 60.0f;
+	eeprom_data.mtr2_temp_lo   = -50.0f;
+	eeprom_data.mc1_temp_hi    = 40.0f;   // from datasheet
+	eeprom_data.mc1_temp_lo    = 0.0f;    // from datasheet
+	eeprom_data.mc2_temp_hi    = 40.0f;   // from datasheet
+	eeprom_data.mc2_temp_lo    = 0.0f;    // from datasheet
+	eeprom_data.dcdc_temp_hi   = 85.0f;   // from datasheet
+	eeprom_data.dcdc_temp_lo   = -40.0f;  // from datasheet
+	eeprom_data.spare_therm_hi = 400.0f;
+	eeprom_data.spare_therm_lo = -273.0f;
+
+	// voltage limits (in Volts)
+	eeprom_data.vmon_3v3_hi    = 3.7f;
+	eeprom_data.vmon_3v3_lo    = 3.0f;
+	eeprom_data.vmon_15v_hi    = 20.0f;
+	eeprom_data.vmon_15v_lo    = 12.0f;
+	eeprom_data.vmon_20v_hi    = 26.0f;
+	eeprom_data.vmon_20v_lo    = 2.8f;  // when mcs are off, sits around 3.0V, need new mode
+	eeprom_data.vmon_spool_hi  = 3.6f;
+	eeprom_data.vmon_spool_lo  = 0.0f;
+
+	// current limits (in Amps, only very rough estimates, currently inaccurate)
+	eeprom_data.imon_brake_hi  = 12.0f;
+	eeprom_data.imon_brake_lo  = -10.0f;
+	eeprom_data.imon_mc_hi     = 12.0f;
+	eeprom_data.imon_mc_lo     = -10.0f;
+	eeprom_data.imon_mtr1_hi   = 13.75f;
+	eeprom_data.imon_mtr1_lo   = -10.0f;
+	eeprom_data.imon_mtr2_hi   = 12.0f;
+	eeprom_data.imon_mtr2_lo   = -10.0f;
+
+	// torque limits
+	eeprom_data.reel_torque_hi = 500.0f;  // approximately Newtons
+	eeprom_data.reel_torque_lo = -500.0f; // approximately Newtons
+	eeprom_data.lw_torque_hi   = 500.0f;  // unknown engineering
+	eeprom_data.lw_torque_lo   = -500.0f; // unknown engineering
+
+	// telemetry sample averaging numbers
+	eeprom_data.tmslow_num_samples = 60; // should be divisible by the fast number (max value 60)
+	eeprom_data.tmfast_num_samples = 10;
+
+	EEPROM.put(EEPROM_BASE_ADDRESS, eeprom_data);
 }

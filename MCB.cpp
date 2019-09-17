@@ -35,8 +35,15 @@ void MCB::Startup()
 	DIB_SERIAL.begin(115200);
 
 	// Non-volatile storage setup
-	storageManager.LoadFromEEPROM();
-	storageManager.StartSD();
+	if (!storageManager.LoadFromEEPROM()) {
+		storageManager.ReconfigureEEPROM();
+		if (!storageManager.LoadFromEEPROM()) {
+			dibDriver.dibComm.TX_Error("MCB error loading EEPROM! Unable to reconfigure!");
+		} else {
+			dibDriver.dibComm.TX_Error("MCB error loading EEPROM! Reconfigured.");
+		}
+	}
+	if (!storageManager.StartSD()) dibDriver.dibComm.TX_Error("MCB error starting SD card!");
 
 	// Set up limit monitor
 	limitMonitor.InitializeSensors();

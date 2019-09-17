@@ -1,11 +1,12 @@
 /*
- *  StateManagerMCB.h
+ *  Monitor.cpp
  *  File implementing the MCB monitor
  *  Author: Alex St. Clair
  *  October 2018
  */
 
 #include "MonitorMCB.h"
+#include "Serialize.h"
 
 MonitorMCB::MonitorMCB(Queue * monitor_q, Queue * action_q, Reel * reel_in, LevelWind * lw_in, InternalSerialDriverMCB * dibdriver)
     : ltcManager(LTC_TEMP_CS_PIN, LTC_TEMP_RESET_PIN, THERM_SENSE_CH, RTD_SENSE_CH)
@@ -26,6 +27,7 @@ void MonitorMCB::InitializeSensors(void)
 	analogReadRes(12);
 	for (int i = 0; i < NUM_TEMP_SENSORS; i++) {
         ltcManager.channel_assignments[temp_sensors[i].channel_number] = temp_sensors[i].sensor_type;
+        temp_sensors[i].sensor_error = true; // true until proven otherwise (affects TM averaging)
     }
 	ltcManager.InitializeAndConfigure();
 }
@@ -88,7 +90,10 @@ void MonitorMCB::Monitor(void)
     if (monitor_reel || monitor_levelwind) {
         limits_ok &= CheckTorques();
         UpdatePositions();
-        PrintMotorData();
+        //PrintMotorData();
+        if (AggregateMotionData()) { // returns true if ready to send
+            SendMotionData();
+        }
     }
 
     if (!limits_ok) {
@@ -225,7 +230,8 @@ bool MonitorMCB::CheckVoltages(void)
     float raw = 0.0f;
 
     // read channel
-    raw = analogRead(vmon_channels[curr_channel].channel_pin);
+    vmon_channels[curr_channel].last_raw = analogRead(vmon_channels[curr_channel].channel_pin);
+    raw = vmon_channels[curr_channel].last_raw;
 
     // calculate voltage given the resistor divider network
     vmon_channels[curr_channel].last_voltage = VREF * (raw / MAX_ADC_READ) / vmon_channels[curr_channel].voltage_divider;
@@ -273,7 +279,8 @@ bool MonitorMCB::CheckCurrents(void)
     float raw = 0.0f;
 
     // read channel
-    raw = analogRead(imon_channels[curr_channel].channel_pin);
+    imon_channels[curr_channel].last_raw = analogRead(imon_channels[curr_channel].channel_pin);
+    raw = imon_channels[curr_channel].last_raw;
 
     // calculate load current from sense current pin voltage (very sensitive to constants)
     imon_channels[curr_channel].last_current = SENSE_CURR_SLOPE *
@@ -410,4 +417,182 @@ void MonitorMCB::PrintMotorData(void)
 	data_string += String(temp_sensors[0].last_temperature); // brushless dc motor temp
 	Serial.println(data_string);
 	storageManager.LogSD(data_string, MOTION_DATA);
+}
+
+// called at about 1 Hz during motion, return true if data ready to send
+bool MonitorMCB::AggregateMotionData(void)
+{
+    // add the torques read from the MCs as long as they were valid
+    if (!motor_torques[REEL_INDEX].read_error) {
+        AddFastTM(&reel_torques, motor_torques[REEL_INDEX].last_torque);
+    }
+    if (!motor_torques[LEVEL_WIND_INDEX].read_error) {
+        AddFastTM(&reel_torques, motor_torques[LEVEL_WIND_INDEX].last_torque);
+    }
+
+    // add the motor currents (ADC read can't fail in software)
+    AddFastTM(&reel_currents, imon_channels[IMON_MTR1].last_raw);
+    AddFastTM(&lw_currents, imon_channels[IMON_MTR2].last_raw);
+
+    // add the slow param temperatures as long as they were valid
+    if (!temp_sensors[MTR1_THERM].sensor_error) {
+        AddSlowTM(PARAM_REEL_TEMP, TempToUInt16(temp_sensors[MTR1_THERM].last_temperature));
+    }
+    if (!temp_sensors[MTR2_THERM].sensor_error) {
+        AddSlowTM(PARAM_LW_TEMP, TempToUInt16(temp_sensors[MTR2_THERM].last_temperature));
+    }
+    if (!temp_sensors[MC1_THERM].sensor_error) {
+        AddSlowTM(PARAM_MC1_TEMP, TempToUInt16(temp_sensors[MC1_THERM].last_temperature));
+    }
+    if (!temp_sensors[MC2_THERM].sensor_error) {
+        AddSlowTM(PARAM_MC2_TEMP, TempToUInt16(temp_sensors[MC2_THERM].last_temperature));
+    }
+
+    // add the brake current and supply voltage (ADC read can't fail in software)
+    AddSlowTM(PARAM_BRAKE_CURR, imon_channels[IMON_BRK].last_raw);
+    AddSlowTM(PARAM_SUPPLY_VOLT, vmon_channels[VMON_15V].last_raw);
+
+    // check if ready to send
+    if (millis() > last_send_millis + 9500) {
+        last_send_millis = millis();
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void MonitorMCB::SendMotionData(void)
+{
+    uint16_t buffer_index = 0;
+    bool buffer_success = true;
+
+    // add the rotating parameter ID
+    buffer_success &= BufferAddUInt8(rotating_parameter, tm_buffer, MOTION_TM_SIZE, &buffer_index);
+
+    // add the rotating parameter values
+    buffer_success &= BufferAddUInt16(AverageResetSlowTM((RotatingParam_t) rotating_parameter), tm_buffer, MOTION_TM_SIZE, &buffer_index);
+    buffer_success &= BufferAddUInt16(slow_tm[rotating_parameter].running_max, tm_buffer, MOTION_TM_SIZE, &buffer_index);
+
+    // reset the rotating_parameter maximum and switch to the next parameter
+    slow_tm[rotating_parameter].running_max = 0;
+    rotating_parameter = (NUM_ROTATING_PARAMS == rotating_parameter + 1) ? FIRST_ROTATING_PARAM : rotating_parameter + 1;
+
+    // add the reel and level wind torques and currents
+    buffer_success &= BufferAddUInt16(AverageResetFastTM(&reel_torques), tm_buffer, MOTION_TM_SIZE, &buffer_index);
+    buffer_success &= BufferAddUInt16(reel_torques.running_max, tm_buffer, MOTION_TM_SIZE, &buffer_index);
+    buffer_success &= BufferAddUInt16(AverageResetFastTM(&lw_torques), tm_buffer, MOTION_TM_SIZE, &buffer_index);
+    buffer_success &= BufferAddUInt16(lw_torques.running_max, tm_buffer, MOTION_TM_SIZE, &buffer_index);
+    buffer_success &= BufferAddUInt16(AverageResetFastTM(&reel_currents), tm_buffer, MOTION_TM_SIZE, &buffer_index);
+    buffer_success &= BufferAddUInt16(reel_currents.running_max, tm_buffer, MOTION_TM_SIZE, &buffer_index);
+    buffer_success &= BufferAddUInt16(AverageResetFastTM(&lw_currents), tm_buffer, MOTION_TM_SIZE, &buffer_index);
+    buffer_success &= BufferAddUInt16(lw_currents.running_max, tm_buffer, MOTION_TM_SIZE, &buffer_index);
+
+    // reset the reel and level wind torque and current maxes
+    reel_torques.running_max = 0;
+    lw_torques.running_max = 0;
+    reel_currents.running_max = 0;
+    lw_currents.running_max = 0;
+
+    // add the reel speed
+    reel->UpdateSpeed(); // TODO: update this in a better place, perhaps average and use uint16_t
+    buffer_success &= BufferAddFloat(reel->speed, tm_buffer, MOTION_TM_SIZE, &buffer_index);
+
+    // add the reel and lw positions
+    buffer_success &= BufferAddFloat(reel->absolute_position / REEL_UNITS_PER_REV, tm_buffer, MOTION_TM_SIZE, &buffer_index);
+    buffer_success &= BufferAddFloat(levelWind->absolute_position, tm_buffer, MOTION_TM_SIZE, &buffer_index);
+
+    // check for a good buffer and send it off
+    if (buffer_success && MOTION_TM_SIZE == buffer_index) {
+        dibDriver->dibComm.AssignBinaryTXBuffer(tm_buffer, MOTION_TM_SIZE, MOTION_TM_SIZE);
+        dibDriver->dibComm.TX_Bin(MCB_MOTION_TM);
+        Serial.println("Sent motion TM packet");
+    } else {
+        storageManager.LogSD("Error creating TM buffer", ERR_DATA);
+    }
+}
+
+void MonitorMCB::AddFastTM(Fast_TM_t * tm_type, uint16_t data)
+{
+    // check the data vs the running maximum
+    if (data > tm_type->running_max) tm_type->running_max = data;
+
+    // make sure the averaging array isn't full
+    if (FAST_TM_MAX_SAMPLES == tm_type->curr_index) return;
+
+    // add the data to the array (index incremented externally for all fast TM)
+    tm_type->data[tm_type->curr_index++] = data;
+}
+
+void MonitorMCB::AddSlowTM(RotatingParam_t tm_index, uint16_t data)
+{
+    // check the data vs the running maximum
+    if (data > slow_tm[tm_index].running_max) slow_tm[tm_index].running_max = data;
+
+    // make sure the averaging array isn't already full
+    if (SLOW_TM_MAX_SAMPLES == slow_tm[tm_index].curr_index) return;
+
+    // add the data to the array and increment the index
+    slow_tm[tm_index].data[slow_tm[tm_index].curr_index++] = data;
+}
+
+uint16_t MonitorMCB::AverageResetFastTM(Fast_TM_t * tm_type)
+{
+    float result = 0;
+
+    // if no data points have been collected, return 0
+    if (0 == tm_type->curr_index) return 0;
+
+    // calculate the average
+    for (uint8_t i = 0; i < tm_type->curr_index; i++) {
+        result += tm_type->data[i];
+    }
+    result = result / (float) tm_type->curr_index;
+
+    // reset the data array
+    tm_type->curr_index = 0;
+
+    return (uint16_t) result;
+}
+
+uint16_t MonitorMCB::AverageResetSlowTM(RotatingParam_t tm_index)
+{
+    float result = 0;
+
+    // if no data points have been collected, return 0
+    if (0 == slow_tm[tm_index].curr_index) return 0;
+
+    // calculate the average
+    for (uint8_t i = 0; i < slow_tm[tm_index].curr_index; i++) {
+        result += slow_tm[tm_index].data[i];
+    }
+    result = result / (float) slow_tm[tm_index].curr_index;
+
+    // reset the data array
+    slow_tm[tm_index].curr_index = 0;
+
+    return (uint16_t) result;
+}
+
+// turn float to uint16_t with resolution 0.1 N
+uint16_t MonitorMCB::TorqueToUInt16(float torque)
+{
+    torque *= 10.0f; // move the decimal to the right by one to capture tenths
+
+    // ensure we're within the range of a uint16_t
+    if (UINT16_MAX <= torque) return UINT16_MAX;
+    if (0 >= torque) return 0;
+
+    return (uint16_t) torque;
+}
+
+// turn float into uint16_t with resolution 0.1 C (note same as TorqueToUInt16)
+uint16_t MonitorMCB::TempToUInt16(float temp)
+{
+    temp *= 10.0f; // move the decimal to the right by one to capture tenths
+
+    // ensure we're within the range of a uint16_t
+    if (UINT16_MAX <= temp) return UINT16_MAX;
+    if (0 >= temp) return 0;
+
+    return (uint16_t) temp;
 }
