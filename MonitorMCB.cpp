@@ -424,10 +424,10 @@ bool MonitorMCB::AggregateMotionData(void)
 {
     // add the torques read from the MCs as long as they were valid
     if (!motor_torques[REEL_INDEX].read_error) {
-        AddFastTM(&reel_torques, motor_torques[REEL_INDEX].last_torque);
+        AddFastTM(&reel_torques, TorqueToUInt16(motor_torques[REEL_INDEX].last_torque));
     }
     if (!motor_torques[LEVEL_WIND_INDEX].read_error) {
-        AddFastTM(&reel_torques, motor_torques[LEVEL_WIND_INDEX].last_torque);
+        AddFastTM(&lw_torques, TorqueToUInt16(motor_torques[LEVEL_WIND_INDEX].last_torque));
     }
 
     // add the motor currents (ADC read can't fail in software)
@@ -577,6 +577,7 @@ uint16_t MonitorMCB::AverageResetSlowTM(RotatingParam_t tm_index)
 uint16_t MonitorMCB::TorqueToUInt16(float torque)
 {
     torque *= 10.0f; // move the decimal to the right by one to capture tenths
+    torque += 30000; // add an offset to deal with negative torques
 
     // ensure we're within the range of a uint16_t
     if (UINT16_MAX <= torque) return UINT16_MAX;
@@ -585,10 +586,11 @@ uint16_t MonitorMCB::TorqueToUInt16(float torque)
     return (uint16_t) torque;
 }
 
-// turn float into uint16_t with resolution 0.1 C (note same as TorqueToUInt16)
+// turn float into uint16_t with resolution 0.1 C
 uint16_t MonitorMCB::TempToUInt16(float temp)
 {
     temp *= 10.0f; // move the decimal to the right by one to capture tenths
+    temp += 30000; // add an offset to deal with negative temperatures
 
     // ensure we're within the range of a uint16_t
     if (UINT16_MAX <= temp) return UINT16_MAX;
