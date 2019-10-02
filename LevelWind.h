@@ -3,7 +3,7 @@
  *  Definition of a class to control the level wind
  *  Author: Alex St. Clair
  *  November 2018
- *  
+ *
  *  This file defines an Arduino library (C++ class) that controls
  *  the level wind. It inherits from the Technosoft class, which
  *  implements communication with the Technosoft motor controllers.
@@ -22,6 +22,8 @@
 #define LEVEL_WIND_AXIS		2
 
 #define LW_STEPS_PER_MM		10500
+
+#define LW_HOME_MILLIS		30000
 
 #ifdef INST_RACHUTS // defined in HardwareMCB.h
 #define STOP_PROFILE_LW		0x4022

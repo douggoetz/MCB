@@ -163,6 +163,11 @@ void MonitorMCB::HandleCommands(void)
     }
 }
 
+bool MonitorMCB::VerifyDeployVoltage(void)
+{
+    return vmon_channels[VMON_15V].last_voltage > MIN_DEPLOY_VOLTAGE;
+}
+
 // measures one sensor at a time in a non-blocking fashion
 bool MonitorMCB::CheckTemperatures(void)
 {
@@ -191,6 +196,7 @@ bool MonitorMCB::CheckTemperatures(void)
                     temp_sensors[curr_sensor].over_temp = true;
                     temp_sensors[curr_sensor].under_temp = false;
                 }
+                snprintf(limit_error, 100, "MCB Temp Limit, ch %u, t=%f", curr_sensor, temp);
                 limits_ok = false;
             } else if (temp < temp_sensors[curr_sensor].limit_lo) {
                 if (!temp_sensors[curr_sensor].under_temp) { // if newly under
@@ -198,6 +204,7 @@ bool MonitorMCB::CheckTemperatures(void)
                     temp_sensors[curr_sensor].over_temp = false;
                     temp_sensors[curr_sensor].under_temp = true;
                 }
+                snprintf(limit_error, 100, "MCB Temp Limit, ch %u, t=%f", curr_sensor, temp);
                 limits_ok = false;
             } else {
                 temp_sensors[curr_sensor].over_temp = false;
@@ -244,6 +251,7 @@ bool MonitorMCB::CheckVoltages(void)
             vmon_channels[curr_channel].over_voltage = true;
             vmon_channels[curr_channel].under_voltage = false;
         }
+        snprintf(limit_error, 100, "MCB Volt Limit, ch %u, V=%f", curr_channel, vmon_channels[curr_channel].last_voltage);
         limits_ok = false;
     } else if (vmon_channels[curr_channel].last_voltage < vmon_channels[curr_channel].limit_lo) {
         if (!vmon_channels[curr_channel].under_voltage) { // if newly under
@@ -251,6 +259,7 @@ bool MonitorMCB::CheckVoltages(void)
             vmon_channels[curr_channel].over_voltage = false;
             vmon_channels[curr_channel].under_voltage = true;
         }
+        snprintf(limit_error, 100, "MCB Volt Limit, ch %u, V=%f", curr_channel, vmon_channels[curr_channel].last_voltage);
         limits_ok = false;
     } else {
         vmon_channels[curr_channel].over_voltage = false;
@@ -291,9 +300,12 @@ bool MonitorMCB::CheckCurrents(void)
     if (imon_channels[curr_channel].last_current > imon_channels[curr_channel].limit_hi) {
         if (!imon_channels[curr_channel].over_current) { // if newly over
             storageManager.LogSD("Over current", ERR_DATA);
+            Serial.print("OC channel: "); Serial.println(curr_channel);
+            Serial.println(imon_channels[curr_channel].last_current);
             imon_channels[curr_channel].over_current = true;
             imon_channels[curr_channel].under_current = false;
         }
+        snprintf(limit_error, 100, "MCB Curr Limit, ch %u, I=%f", curr_channel, imon_channels[curr_channel].last_current);
         limits_ok = false;
     } else if (imon_channels[curr_channel].last_current < imon_channels[curr_channel].limit_lo) {
         if (!imon_channels[curr_channel].under_current) { // if newly under
@@ -301,6 +313,7 @@ bool MonitorMCB::CheckCurrents(void)
             imon_channels[curr_channel].over_current = false;
             imon_channels[curr_channel].under_current = true;
         }
+        snprintf(limit_error, 100, "MCB Curr Limit, ch %u, I=%f", curr_channel, imon_channels[curr_channel].last_current);
         limits_ok = false;
     } else {
         imon_channels[curr_channel].over_current = false;
@@ -337,6 +350,7 @@ bool MonitorMCB::CheckTorques(void)
                     motor_torques[REEL_INDEX].over_torque = true;
                     motor_torques[REEL_INDEX].under_torque = false;
                 }
+                snprintf(limit_error, 100, "MCB Reel Torque Limit, t=%f", motor_torques[REEL_INDEX].last_torque);
                 limits_ok = false;
             } else if (motor_torques[REEL_INDEX].last_torque < motor_torques[REEL_INDEX].limit_lo) {
                 if (!motor_torques[REEL_INDEX].under_torque) { // if newly under
@@ -344,6 +358,7 @@ bool MonitorMCB::CheckTorques(void)
                     motor_torques[REEL_INDEX].over_torque = false;
                     motor_torques[REEL_INDEX].under_torque = true;
                 }
+                snprintf(limit_error, 100, "MCB Reel Torque Limit, t=%f", motor_torques[REEL_INDEX].last_torque);
                 limits_ok = false;
             } else {
                 motor_torques[REEL_INDEX].over_torque = false;
@@ -366,6 +381,7 @@ bool MonitorMCB::CheckTorques(void)
                     motor_torques[LEVEL_WIND_INDEX].over_torque = true;
                     motor_torques[LEVEL_WIND_INDEX].under_torque = false;
                 }
+                snprintf(limit_error, 100, "MCB LW Torque Limit, t=%f", motor_torques[LEVEL_WIND_INDEX].last_torque);
                 limits_ok = false;
             } else if (motor_torques[LEVEL_WIND_INDEX].last_torque < motor_torques[LEVEL_WIND_INDEX].limit_lo) {
                 if (!motor_torques[LEVEL_WIND_INDEX].under_torque) { // if newly under
@@ -373,6 +389,7 @@ bool MonitorMCB::CheckTorques(void)
                     motor_torques[LEVEL_WIND_INDEX].over_torque = false;
                     motor_torques[LEVEL_WIND_INDEX].under_torque = true;
                 }
+                snprintf(limit_error, 100, "MCB LW Torque Limit, t=%f", motor_torques[LEVEL_WIND_INDEX].last_torque);
                 limits_ok = false;
             } else {
                 motor_torques[LEVEL_WIND_INDEX].over_torque = false;

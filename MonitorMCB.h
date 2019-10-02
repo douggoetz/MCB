@@ -24,6 +24,8 @@
 #define FAST_TM_MAX_SAMPLES 10
 #define SLOW_TM_MAX_SAMPLES (NUM_ROTATING_PARAMS * FAST_TM_MAX_SAMPLES)
 
+#define MIN_DEPLOY_VOLTAGE  14.0f
+
 enum Motor_Torque_Index_t : uint8_t {
     REEL_INDEX = 0,
     LEVEL_WIND_INDEX = 1
@@ -93,6 +95,12 @@ public:
     void InitializeSensors(void);
     void UpdateLimits(void);
     void Monitor(void);
+
+    bool VerifyDeployVoltage(void);
+
+    // if a limit is exceeded, the relevant info is written to this string
+    char limit_error[100];
+
 private:
     // read and respond to commands on the monitor_queue
     void HandleCommands(void);

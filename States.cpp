@@ -97,6 +97,12 @@ void MCB::ReelOut()
 {
 	switch (substate) {
 	case STATE_ENTRY:
+		if (!limitMonitor.VerifyDeployVoltage()) {
+			dibDriver.dibComm.TX_Error("Voltage too low to reel out!");
+			action_queue.Push(ACT_SWITCH_NOMINAL);
+			return;
+		}
+
 		if (!ReelControllerOn()) {
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
@@ -117,7 +123,7 @@ void MCB::ReelOut()
 		}
 
 		if (!reel.ReelOut(dibDriver.mcbParameters.deploy_length, dibDriver.mcbParameters.deploy_velocity, storageManager.eeprom_data.deploy_acceleration)) {
-			Serial.println("Error reeling out");
+			dibDriver.dibComm.TX_Error("Error comanding reel out");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 		}
 
@@ -158,12 +164,21 @@ void MCB::ReelOut()
 
 void MCB::ReelIn()
 {
+	// used for inter-loop timing
+	static uint32_t timing_variable = 0;
+
 	switch (substate) {
 	case STATE_ENTRY:
 		Serial.println("Entering reel in");
 
+		if (!limitMonitor.VerifyDeployVoltage()) {
+			dibDriver.dibComm.TX_Error("Voltage too low to reel in!");
+			action_queue.Push(ACT_SWITCH_NOMINAL);
+			return;
+		}
+
 		if (!ReelControllerOn()) {
-			Serial.println("Error powering reel on");
+			dibDriver.dibComm.TX_Error("Error powering reel on");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
@@ -173,7 +188,7 @@ void MCB::ReelIn()
 
 	case REEL_IN_LW_ON:
 		if (!LevelWindControllerOn()) {
-			Serial.println("Error powering LW on");
+			dibDriver.dibComm.TX_Error("Error powering LW on");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
@@ -185,7 +200,7 @@ void MCB::ReelIn()
 
 	case REEL_IN_START_MOTION:
 		if (!reel.ReelIn(dibDriver.mcbParameters.retract_length, dibDriver.mcbParameters.retract_velocity, storageManager.eeprom_data.retract_acceleration)) {
-			Serial.println("Error reeling in");
+			dibDriver.dibComm.TX_Error("Error commanding reel in");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
@@ -195,10 +210,11 @@ void MCB::ReelIn()
 
 		if (!homed) {
 			if (!levelWind.Home()) {
-				Serial.println("Error homing lw");
+				dibDriver.dibComm.TX_Error("Error commanding lw home");
 				action_queue.Push(ACT_SWITCH_NOMINAL);
 			} else {
 				lw_docked = false;
+				timing_variable = millis() + LW_HOME_MILLIS;
 				substate = REEL_IN_HOME;
 			}
 		} else {
@@ -207,8 +223,8 @@ void MCB::ReelIn()
 		break;
 
 	case REEL_IN_HOME:
-		levelWind.UpdateDriveStatus();
-		if (!(levelWind.drive_status.motion_complete || levelWind.drive_status.fault)) return;
+		// wait until thirty seconds (worst-case home) have passed
+		if (millis() < timing_variable) return;
 
 		homed = true;
 
@@ -222,7 +238,7 @@ void MCB::ReelIn()
 	case REEL_IN_START_CAM:
 		if (!reel.CamSetup() || !levelWind.StartCamming()) {
 			reel.StopProfile();
-			storageManager.LogSD("Error starting camming", ERR_DATA);
+			dibDriver.dibComm.TX_Error("Error starting camming");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			camming = false;
 			return;
@@ -271,8 +287,14 @@ void MCB::Dock()
 	case STATE_ENTRY:
 		Serial.println("Entering dock");
 
+		if (!limitMonitor.VerifyDeployVoltage()) {
+			dibDriver.dibComm.TX_Error("Voltage too low to dock!");
+			action_queue.Push(ACT_SWITCH_NOMINAL);
+			return;
+		}
+
 		if (!reel_initialized || !levelwind_initialized || (!homed && !lw_docked)) {
-			storageManager.LogSD("Not ready for dock", ERR_DATA);
+			dibDriver.dibComm.TX_Error("Not ready for dock");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
@@ -289,7 +311,7 @@ void MCB::Dock()
 
 	case DOCK_START_MOTION:
 		if (!reel.ReelIn(dibDriver.mcbParameters.dock_length, dibDriver.mcbParameters.dock_velocity, storageManager.eeprom_data.dock_acceleration)) {
-			Serial.println("Error reeling in for dock");
+			dibDriver.dibComm.TX_Error("Error commanding reel in for dock");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
@@ -298,7 +320,7 @@ void MCB::Dock()
 		Serial.println(dibDriver.mcbParameters.dock_length);
 
 		if (!lw_docked && !levelWind.SetCenter()) {
-			Serial.println("Error setting lw center for dock");
+			dibDriver.dibComm.TX_Error("Error setting lw center for dock");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
@@ -340,12 +362,20 @@ void MCB::Dock()
 
 void MCB::HomeLW()
 {
+	static uint32_t timing_variable = 0;
+
 	switch (substate) {
 	case STATE_ENTRY:
 		Serial.println("Entering home lw");
 
+		if (!limitMonitor.VerifyDeployVoltage()) {
+			dibDriver.dibComm.TX_Error("Voltage too low to home!");
+			action_queue.Push(ACT_SWITCH_NOMINAL);
+			return;
+		}
+
 		if (!ReelControllerOn() || !LevelWindControllerOn()) {
-			Serial.println("Error powering controllers on");
+			dibDriver.dibComm.TX_Error("Error powering controllers on for LW home");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
@@ -360,11 +390,12 @@ void MCB::HomeLW()
 
 	case HOME_START_MOTION:
 		if (!levelWind.Home()) {
-			Serial.println("Error homing");
+			dibDriver.dibComm.TX_Error("Error homing LW");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
 		}
 
+		timing_variable = millis() + LW_HOME_MILLIS;
 		lw_docked = false;
 		substate = HOME_MONITOR;
 		break;
@@ -372,7 +403,7 @@ void MCB::HomeLW()
 	case HOME_MONITOR:
 		CheckLevelWind();
 
-		if (levelWind.drive_status.motion_complete) {
+		if (millis() > timing_variable) {
 			action_queue.Push(ACT_SWITCH_READY);
 		}
 

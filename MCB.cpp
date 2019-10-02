@@ -107,7 +107,7 @@ bool MCB::SetState(MCB_States_t new_state)
 void MCB::InitializeWatchdog()
 {
     if ((RCM_SRS0 & RCM_SRS0_WDOG) != 0) {
-        storageManager.LogSD("Reset caused by watchdog", ERR_DATA);
+        dibDriver.dibComm.TX_Error("MCB reset caused by watchdog");
     }
 
     noInterrupts(); // disable interrupts
@@ -252,8 +252,8 @@ void MCB::PerformActions(void)
 			}
 			break;
 		case ACT_LIMIT_EXCEEDED:
-			if (curr_state != ST_READY) {
-				storageManager.LogSD("Limit exceeded, setting state to ready", ERR_DATA);
+			if (curr_state != ST_READY && curr_state != ST_NOMINAL) {
+				dibDriver.dibComm.TX_Error(limitMonitor.limit_error);
 				action_queue.Push(ACT_SWITCH_READY);
 			}
 			break;
@@ -300,7 +300,6 @@ bool MCB::CheckLevelWind(void)
 		LogFault();
 		return false;
 	} else if (levelWind.drive_status.motion_complete) {
-		Serial.println("Level wind motion complete");
 		return true;
 	}
 	return false;
