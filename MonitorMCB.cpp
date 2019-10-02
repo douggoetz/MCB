@@ -183,6 +183,7 @@ bool MonitorMCB::CheckTemperatures(void)
         // validate reading, check limits if valid
         if (temp != TEMPERATURE_ERROR && temp != LTC_SENSOR_ERROR) {
             temp_sensors[curr_sensor].last_temperature = temp;
+            temp_sensors[curr_sensor].sensor_error = false;
 
             if (temp > temp_sensors[curr_sensor].limit_hi) {
                 if (!temp_sensors[curr_sensor].over_temp) { // if newly over
@@ -487,15 +488,11 @@ void MonitorMCB::SendMotionData(void)
     buffer_success &= BufferAddUInt16(AverageResetFastTM(&lw_currents), tm_buffer, MOTION_TM_SIZE, &buffer_index);
     buffer_success &= BufferAddUInt16(lw_currents.running_max, tm_buffer, MOTION_TM_SIZE, &buffer_index);
 
-    // reset the reel and level wind torque and current maxes
+    // reset the reel and level wind torque and current maxes as well as reel speed
     reel_torques.running_max = 0;
     lw_torques.running_max = 0;
     reel_currents.running_max = 0;
     lw_currents.running_max = 0;
-
-    // add the reel speed
-    reel->UpdateSpeed(); // TODO: update this in a better place, perhaps average and use uint16_t
-    buffer_success &= BufferAddFloat(reel->speed, tm_buffer, MOTION_TM_SIZE, &buffer_index);
 
     // add the reel and lw positions
     buffer_success &= BufferAddFloat(reel->absolute_position / REEL_UNITS_PER_REV, tm_buffer, MOTION_TM_SIZE, &buffer_index);

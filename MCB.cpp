@@ -356,14 +356,16 @@ bool MCB::ReelControllerOn(void)
 		powerController.ReelOff();
 		action_queue.Push(ACT_SWITCH_READY);
 		storageManager.LogSD("Unable to sync reel controller", ERR_DATA);
+		dibDriver.dibComm.TX_Error("Unable to sync reel controller");
 		return false;
 	}
 
 	// attempt to increase the baud rate
 	// if (!reel.UpdateBaudRate(B115200)) {
 	// 	powerController.ReelOff();
-	// 	action_queue->Push(ACT_SWITCH_READY);
+	// 	action_queue.Push(ACT_SWITCH_READY);
 	// 	storageManager.LogSD("Error increasing reel controller baud", ERR_DATA);
+	// 	dibDriver.dibComm.TX_Error("Error increasing reel controller baud");
 	// 	return false;
 	// }
 
@@ -372,6 +374,7 @@ bool MCB::ReelControllerOn(void)
 		powerController.ReelOff();
 		action_queue.Push(ACT_SWITCH_READY);
 		storageManager.LogSD("Error starting reel control loops", ERR_DATA);
+		dibDriver.dibComm.TX_Error("Error starting reel control loops");
 		return false;
 	}
 
@@ -400,6 +403,7 @@ bool MCB::LevelWindControllerOn(void)
 		powerController.LevelWindOff();
 		action_queue.Push(ACT_SWITCH_READY);
 		storageManager.LogSD("Error starting level wind control loops", ERR_DATA);
+		dibDriver.dibComm.TX_Error("Error starting level wind control loops");
 		return false;
 	}
 
