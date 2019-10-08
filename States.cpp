@@ -223,8 +223,15 @@ void MCB::ReelIn()
 		break;
 
 	case REEL_IN_HOME:
-		// wait until thirty seconds (worst-case home) have passed
-		if (millis() < timing_variable) return;
+		// make sure motion is complete and the limit switch has been hit before moving one
+		// if thirty seconds passes, move on anyway
+		if (levelWind.UpdateDriveStatus()) {
+			if (!(levelWind.drive_status.lsp_event && levelWind.drive_status.motion_complete)) {
+				if (millis() < timing_variable) return;
+			}
+		} else if (millis() < timing_variable) {
+			return;
+		}
 
 		homed = true;
 
