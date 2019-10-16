@@ -118,6 +118,12 @@ void InternalSerialDriverMCB::HandleASCII(void)
 			state_queue->Push(ACT_DOCK);
 		}
 		break;
+	case MCB_IN_NO_LW:
+		if (dibComm.RX_In_No_LW(&(mcbParameters.retract_length), &(mcbParameters.retract_velocity))) {
+			state_queue->Push(ACT_SET_RETRACT_V);
+			state_queue->Push(ACT_IN_NO_LW);
+		}
+		break;
 	case MCB_OUT_ACC:
 		if (dibComm.RX_Out_Acc(&(mcbParameters.deploy_acceleration))) {
 			state_queue->Push(ACT_SET_DEPLOY_A);
@@ -158,6 +164,7 @@ void InternalSerialDriverMCB::PrintDebugMenu()
 	PrintDebugCommand(MCB_REEL_OUT, ",num_revs,speed;\t(reel out)");
 	PrintDebugCommand(MCB_REEL_IN, ",num_revs,speed;\t(reel in)");
 	PrintDebugCommand(MCB_DOCK, ",num_revs,speed;\t(dock)");
+	PrintDebugCommand(MCB_IN_NO_LW, ",num_revs,speed;\t(reel in without LW)");
 	PrintDebugCommand(MCB_OUT_ACC, ",acc;\t(out acceleration)");
 	PrintDebugCommand(MCB_IN_ACC, ",acc;\t(in acceleration)");
 	PrintDebugCommand(MCB_DOCK_ACC, ",acc;\t(dock acceleration)");

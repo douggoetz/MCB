@@ -188,6 +188,15 @@ void MCB::PerformActions(void)
 				dibDriver.dibComm.TX_Error("Dock denied, reel ops ongoing");
 			}
 			break;
+		case ACT_IN_NO_LW:
+			// only dock if not currently performing reel operation
+			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
+				SetState(ST_IN_NO_LW);
+				dibDriver.dibComm.TX_Ack(MCB_IN_NO_LW, true);
+			} else {
+				dibDriver.dibComm.TX_Error("Reel in no LW denied, reel ops ongoing");
+			}
+			break;
 		case ACT_HOME_LW:
 			// only home if not currently performing reel operation
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {

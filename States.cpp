@@ -37,6 +37,10 @@ enum MCBSubstates_t : uint8_t{
 	DOCK_START_MOTION,
 	DOCK_MONITOR,
 
+	// Reel in, no level wind
+	IN_NO_LW_START_MOTION,
+	IN_NO_LW_MONITOR,
+
 	// Home LW
 	HOME_START_MOTION,
 	HOME_MONITOR,
@@ -361,6 +365,75 @@ void MCB::Dock()
 
 	default:
 		storageManager.LogSD("Unknown dock substate", ERR_DATA);
+		action_queue.Push(ACT_SWITCH_NOMINAL);
+		break;
+	}
+}
+
+
+void MCB::InNoLW()
+{
+	switch (substate) {
+	case STATE_ENTRY:
+		if (!limitMonitor.VerifyDeployVoltage()) {
+			dibDriver.dibComm.TX_Error("Voltage too low to reel in (no LW)!");
+			action_queue.Push(ACT_SWITCH_NOMINAL);
+			return;
+		}
+
+		if (!ReelControllerOn()) {
+			action_queue.Push(ACT_SWITCH_NOMINAL);
+			return;
+		}
+
+		if (levelwind_initialized) {
+			LevelWindControllerOff();
+		}
+
+		monitor_queue.Push(MONITOR_REEL_ON);
+		substate = IN_NO_LW_START_MOTION;
+		break;
+
+	case IN_NO_LW_START_MOTION:
+		if (camming) {
+			reel.CamStop();
+			camming = false;
+		}
+
+		if (!reel.ReelIn(dibDriver.mcbParameters.retract_length, dibDriver.mcbParameters.retract_velocity, storageManager.eeprom_data.retract_acceleration)) {
+			dibDriver.dibComm.TX_Error("Error comanding reel in (no LW)");
+			action_queue.Push(ACT_SWITCH_NOMINAL);
+		}
+
+		Serial.print("Reeling in (no LW): ");
+		Serial.println(dibDriver.mcbParameters.retract_length);
+
+		substate = IN_NO_LW_MONITOR;
+		break;
+
+	case IN_NO_LW_MONITOR:
+		// will switch mode once motion complete or fault detected
+		CheckReel();
+
+		if (millis() - last_pos_print > 5000) {
+			Serial.println(reel.absolute_position / REEL_UNITS_PER_REV);
+			last_pos_print = millis();
+		}
+
+		break;
+
+	case STATE_EXIT:
+		if (reel.StopProfile()) {
+			delay(50); // wait a bit for motion to settle
+			reel.UpdatePosition();
+		}
+		ReelControllerOff();
+		monitor_queue.Push(MONITOR_MOTORS_OFF);
+		Serial.println("Exiting reel in (no LW)");
+		break;
+
+	default:
+		storageManager.LogSD("Unknown reel in (no LW) substate", ERR_DATA);
 		action_queue.Push(ACT_SWITCH_NOMINAL);
 		break;
 	}

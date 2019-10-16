@@ -20,6 +20,7 @@ enum State_Actions_t : uint8_t {
     ACT_DEPLOY_X,
     ACT_RETRACT_X,
     ACT_DOCK,
+    ACT_IN_NO_LW,
     ACT_HOME_LW,
     ACT_BRAKE_ON,
     ACT_BRAKE_OFF,

@@ -39,6 +39,7 @@ enum MCB_States_t : uint8_t {
 	ST_REEL_OUT,
 	ST_REEL_IN,
 	ST_DOCK,
+	ST_IN_NO_LW,
 	ST_HOME_LW,
 	NUM_STATES, // not a state, used for counting
 	UNUSED_STATE = 0xFF // not a state, used as default
@@ -71,6 +72,7 @@ private:
 	void ReelOut();
 	void ReelIn();
 	void Dock();
+	void InNoLW();
 	void HomeLW();
 
 	// Array of state functions
@@ -80,6 +82,7 @@ private:
 		&MCB::ReelOut,
 		&MCB::ReelIn,
 		&MCB::Dock,
+		&MCB::InNoLW,
 		&MCB::HomeLW
 	};
 
