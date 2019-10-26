@@ -292,6 +292,8 @@ void MCB::CheckReel(void)
 		Serial.println("Reel motion complete");
 		action_queue.Push(ACT_SWITCH_READY);
 		dibDriver.dibComm.TX_ASCII(MCB_MOTION_FINISHED);
+		delay(100);
+		dibDriver.dibComm.TX_ASCII(MCB_MOTION_FINISHED); // tx twice in case DIB misses the first
 	}
 }
 
@@ -343,6 +345,14 @@ void MCB::LogFault(void)
 		storageManager.LogSD(fault_string.c_str(), ERR_DATA);
 	}
 
+	dibDriver.dibComm.TX_Motion_Fault(reel.drive_fault.status_lo, reel.drive_fault.status_hi,
+									  reel.drive_fault.detailed_err, reel.drive_fault.motion_err,
+									  levelWind.drive_fault.status_lo, levelWind.drive_fault.status_hi,
+									  levelWind.drive_fault.detailed_err, levelWind.drive_fault.motion_err);
+
+	delay(100);
+
+	// send twice in case the DIB misses the first
 	dibDriver.dibComm.TX_Motion_Fault(reel.drive_fault.status_lo, reel.drive_fault.status_hi,
 									  reel.drive_fault.detailed_err, reel.drive_fault.motion_err,
 									  levelWind.drive_fault.status_lo, levelWind.drive_fault.status_hi,
