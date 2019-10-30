@@ -26,6 +26,7 @@ enum State_Actions_t : uint8_t {
     ACT_BRAKE_OFF,
     ACT_CONTROLLERS_ON,
     ACT_CONTROLLERS_OFF,
+    ACT_FULL_RETRACT,
 
     // parameters to set
     ACT_SET_DEPLOY_V,

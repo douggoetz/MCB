@@ -250,6 +250,7 @@ void MCB::PerformActions(void)
 			dibDriver.dibComm.TX_Ack(MCB_DOCK_ACC,true);
 			break;
 		case ACT_ZERO_REEL:
+			Serial.println("Zeroing reel");
 			if (curr_state == ST_NOMINAL || curr_state == ST_READY) {
 				ReelControllerOn();
 				if (reel.SetPosition(0.0f)) {
@@ -265,6 +266,27 @@ void MCB::PerformActions(void)
 				dibDriver.dibComm.TX_Error(limitMonitor.limit_error);
 				action_queue.Push(ACT_SWITCH_READY);
 			}
+			break;
+		case ACT_FULL_RETRACT:
+			// in case motion is ongoing, kill the controllers
+			Serial.println("Full retract command received");
+			LevelWindControllerOff();
+			ReelControllerOff();
+
+			// trust the position in memory, and reel in 99.5% of it at the default speed if it shows we're deployed
+			if (reel.absolute_position < 0) {
+				dibDriver.mcbParameters.retract_length = 0.995 * abs(reel.absolute_position) / REEL_UNITS_PER_REV;
+				dibDriver.mcbParameters.retract_velocity = DEFAULT_FULL_SPEED;
+				SetState(ST_REEL_IN);
+			} else {
+				Serial.println("Full retract unnecessary, already reeled in");
+
+				// send the motion complete twice
+				dibDriver.dibComm.TX_ASCII(MCB_MOTION_FINISHED);
+				delay(100);
+				dibDriver.dibComm.TX_ASCII(MCB_MOTION_FINISHED);
+			}
+
 			break;
 		default:
 			storageManager.LogSD("Unknown state manager action", ERR_DATA);

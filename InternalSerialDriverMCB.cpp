@@ -99,6 +99,10 @@ void InternalSerialDriverMCB::HandleASCII(void)
 	case MCB_CONTROLLERS_OFF:
 		state_queue->Push(ACT_CONTROLLERS_OFF);
 		break;
+	case MCB_FULL_RETRACT:
+		state_queue->Push(ACT_FULL_RETRACT);
+		dibComm.TX_Ack(MCB_FULL_RETRACT, true);
+		break;
 	// messages that have parameters to parse -------------
 	case MCB_REEL_OUT:
 		if (dibComm.RX_Reel_Out(&(mcbParameters.deploy_length), &(mcbParameters.deploy_velocity))) {
@@ -160,6 +164,7 @@ void InternalSerialDriverMCB::PrintDebugMenu()
 	PrintDebugCommand(MCB_BRAKE_OFF, ";\t(brake off)");
 	PrintDebugCommand(MCB_CONTROLLERS_ON, ";\t(controllers on)");
 	PrintDebugCommand(MCB_CONTROLLERS_OFF, ";\t(controllers off)");
+	PrintDebugCommand(MCB_FULL_RETRACT, ";\t(full retract)");
 	Serial.println("--------------------");
 	PrintDebugCommand(MCB_REEL_OUT, ",num_revs,speed;\t(reel out)");
 	PrintDebugCommand(MCB_REEL_IN, ",num_revs,speed;\t(reel in)");
