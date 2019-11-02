@@ -14,8 +14,8 @@
 #include <stdint.h>
 
 // Which instrument?
-#define INST_RACHUTS
-//#define INST_FLOATS
+//#define INST_RACHUTS
+#define INST_FLOATS
 
 // Pin definitions
 #define MC1_IN1_PIN				2
@@ -106,7 +106,7 @@ enum Temp_Sensor_Indices_t {
 // EEPROM definitions
 #define EEPROM_BASE_ADDRESS		0
 #define EEPROM_MAX_ADDRESS		4095
-#define EEPROM_VERSION			(uint32_t) 0xA5C60002
+#define EEPROM_VERSION			(uint32_t) 0xA5C60003
 
 // EEPROM data layout, note: will not pack, so try to arrange in 32-bit blocks
 struct EEPROM_Data_t {

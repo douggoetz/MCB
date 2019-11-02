@@ -346,8 +346,8 @@ void StorageManagerMCB::ReconfigureEEPROM() {
 	// torque limits
 	eeprom_data.reel_torque_hi = 500.0f;  // approximately Newtons
 	eeprom_data.reel_torque_lo = -500.0f; // approximately Newtons
-	eeprom_data.lw_torque_hi   = 500.0f;  // unknown engineering
-	eeprom_data.lw_torque_lo   = -500.0f; // unknown engineering
+	eeprom_data.lw_torque_hi   = 1000.0f;  // unknown engineering
+	eeprom_data.lw_torque_lo   = -1000.0f; // unknown engineering
 
 	// telemetry sample averaging numbers
 	eeprom_data.tmslow_num_samples = 60; // should be divisible by the fast number (max value 60)
