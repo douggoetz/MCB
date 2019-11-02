@@ -32,20 +32,29 @@
 #define HOME_LW				0x4056
 #endif
 #ifdef INST_FLOATS // defined in HardwareMCB.h
-#define STOP_PROFILE_LW		0x4022
-#define START_CAMMING_LW	0x4025
-#define SET_CENTER_LW		0x403F
-#define HOME_LW				0x4056
+#define STOP_PROFILE_LW		0x401F
+#define WIND_OUT_LW			0x4022
+#define WIND_IN_LW			0x4039
+#define SET_CENTER_LW		0x4050
+#define HOME_LW				0x4067
 #endif
 
 class LevelWind : public Technosoft {
 public:
 	LevelWind(uint8_t expeditor_axis);
 	bool StopProfile();
-	bool StartCamming();
 	bool SetCenter();
 	bool Home();
 	bool UpdatePosition();
+
+#ifdef INST_RACHUTS
+	bool StartCamming();
+#endif
+
+#ifdef INST_FLOATS
+	bool WindOut();
+	bool WindIn();
+#endif
 
 	float absolute_position; // in mm, relative to home
 private:

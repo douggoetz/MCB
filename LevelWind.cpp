@@ -3,7 +3,7 @@
  *  Implementation of a class to control the level wind
  *  Author: Alex St. Clair
  *  January 2018
- *  
+ *
  *  This file defines an Arduino library (C++ class) that controls
  *  the level wind. It inherits from the Technosoft class, which
  *  implements communication with the Technosoft motor controllers.
@@ -15,10 +15,6 @@ LevelWind::LevelWind(uint8_t expeditor_axis) : Technosoft(LEVEL_WIND_AXIS, exped
 
 bool LevelWind::StopProfile() {
 	return CallFunction(STOP_PROFILE_LW);
-}
-
-bool LevelWind::StartCamming() {
-	return CallFunction(START_CAMMING_LW);
 }
 
 bool LevelWind::SetCenter() {
@@ -37,3 +33,19 @@ bool LevelWind::UpdatePosition() {
 	}
 	return false;
 }
+
+#ifdef INST_RACHUTS
+bool LevelWind::StartCamming() {
+	return CallFunction(START_CAMMING_LW);
+}
+#endif
+
+#ifdef INST_FLOATS
+bool LevelWind::WindOut() {
+	return CallFunction(WIND_OUT_LW);
+}
+
+bool LevelWind::WindIn() {
+	return CallFunction(WIND_IN_LW);
+}
+#endif

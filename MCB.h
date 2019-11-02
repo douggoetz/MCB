@@ -127,6 +127,7 @@ private:
 	bool camming = false;
 	bool homed = false;
 	bool lw_docked = false;
+	bool lw_direction_out = true;
 
 	// The current substate
 	uint8_t substate = ENTRY_SUBSTATE;

@@ -212,6 +212,7 @@ void MCB::ReelIn()
 		Serial.print("Reeling in: ");
 		Serial.println(dibDriver.mcbParameters.retract_length);
 
+#ifdef INST_RACHUTS
 		if (!homed) {
 			if (!levelWind.Home()) {
 				dibDriver.dibComm.TX_Error("Error commanding lw home");
@@ -224,6 +225,18 @@ void MCB::ReelIn()
 		} else {
 			substate = REEL_IN_START_CAM;
 		}
+#endif
+
+#ifdef INST_FLOATS
+		if (!levelWind.Home()) {
+			dibDriver.dibComm.TX_Error("Error commanding lw home");
+			action_queue.Push(ACT_SWITCH_NOMINAL);
+		} else {
+			timing_variable = millis() + LW_HOME_MILLIS;
+			substate = REEL_IN_HOME;
+		}
+#endif
+
 		break;
 
 	case REEL_IN_HOME:
@@ -239,15 +252,29 @@ void MCB::ReelIn()
 
 		homed = true;
 
+#ifdef INST_RACHUTS
 		if (!camming) {
 			substate = REEL_IN_START_CAM;
 		} else {
 			substate = REEL_IN_MONITOR;
 		}
+#endif
+
+#ifdef INST_FLOATS
+		substate = REEL_IN_START_CAM;
+#endif
+
 		break;
 
+
+
 	case REEL_IN_START_CAM:
+#ifdef INST_RACHUTS
 		if (!reel.CamSetup() || !levelWind.StartCamming()) {
+#endif
+#ifdef INST_FLOATS
+		if (!levelWind.WindOut()) {
+#endif
 			reel.StopProfile();
 			dibDriver.dibComm.TX_Error("Error starting camming");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
@@ -275,6 +302,9 @@ void MCB::ReelIn()
 		if (reel.StopProfile()) {
 			delay(50); // wait a bit for motion to settle if ongoing
 			reel.UpdatePosition();
+#ifdef INST_FLOATS
+			levelWind.StopProfile();
+#endif
 		} else {
 			ReelControllerOff();
 			LevelWindControllerOff();
