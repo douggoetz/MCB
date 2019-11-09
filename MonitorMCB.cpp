@@ -148,6 +148,13 @@ void MonitorMCB::HandleCommands(void)
                 dibDriver->dibComm.TX_Temperatures(temp_sensors[0].last_temperature, temp_sensors[1].last_temperature, temp_sensors[2].last_temperature,
                                                    temp_sensors[3].last_temperature, temp_sensors[4].last_temperature, temp_sensors[5].last_temperature);
             }
+            Serial.print("Temps: ");
+            Serial.print(temp_sensors[0].last_temperature); Serial.print(",");
+            Serial.print(temp_sensors[1].last_temperature); Serial.print(",");
+            Serial.print(temp_sensors[2].last_temperature); Serial.print(",");
+            Serial.print(temp_sensors[3].last_temperature); Serial.print(",");
+            Serial.print(temp_sensors[4].last_temperature); Serial.print(",");
+            Serial.println(temp_sensors[5].last_temperature);
             break;
         case MONITOR_SEND_VOLTS:
             dibDriver->dibComm.TX_Voltages(vmon_channels[0].last_voltage, vmon_channels[1].last_voltage, vmon_channels[2].last_voltage, vmon_channels[3].last_voltage);
