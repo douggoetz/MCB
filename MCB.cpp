@@ -311,6 +311,9 @@ void MCB::CheckReel(void)
 		action_queue.Push(ACT_SWITCH_NOMINAL);
 		LogFault();
 	} else if (reel.drive_status.motion_complete) {
+#ifdef INST_FLOATS
+		levelWind.StopProfile();
+#endif
 		Serial.println("Reel motion complete");
 		action_queue.Push(ACT_SWITCH_READY);
 		dibDriver.dibComm.TX_ASCII(MCB_MOTION_FINISHED);
@@ -319,6 +322,7 @@ void MCB::CheckReel(void)
 	}
 }
 
+#ifdef INST_RACHUTS
 // returns true if and only if motion complete
 bool MCB::CheckLevelWind(void)
 {
@@ -337,6 +341,38 @@ bool MCB::CheckLevelWind(void)
 	}
 	return false;
 }
+#endif
+
+#ifdef INST_FLOATS
+bool MCB::CheckLevelWind(void)
+{
+	if (!levelWind.UpdateDriveStatus()) {
+		storageManager.LogSD("Error updating level wind drive status", ERR_DATA);
+		return false;
+	}
+
+	if (levelWind.drive_status.fault) {
+		action_queue.Push(ACT_SWITCH_NOMINAL);
+		Serial.println("Motion fault (lw)");
+		LogFault();
+	} else if (levelWind.drive_status.motion_complete) {
+		if (lw_direction_out) {
+			if (!levelWind.WindIn()) {
+				action_queue.Push(ACT_SWITCH_NOMINAL);
+				Serial.println("Unable to command next lw segment");
+			}
+		} else {
+			if (!levelWind.WindOut()) {
+				action_queue.Push(ACT_SWITCH_NOMINAL);
+				Serial.println("Unable to command next lw segment");
+			}
+		}
+		lw_direction_out ^= true; // flip direction tracker
+	}
+
+	return false; // this should never return true for FLOATS
+}
+#endif
 
 
 void MCB::LogFault(void)

@@ -311,17 +311,17 @@ void StorageManagerMCB::ReconfigureEEPROM() {
 
 	// temperature limits (in degrees C)
 	eeprom_data.mtr1_temp_hi   = 80.0f;
-	eeprom_data.mtr1_temp_lo   = -50.0f;
+	eeprom_data.mtr1_temp_lo   = -15.0f;
 	eeprom_data.mtr2_temp_hi   = 60.0f;
-	eeprom_data.mtr2_temp_lo   = -50.0f;
-	eeprom_data.mc1_temp_hi    = 40.0f;   // from datasheet
-	eeprom_data.mc1_temp_lo    = 0.0f;    // from datasheet
-	eeprom_data.mc2_temp_hi    = 40.0f;   // from datasheet
-	eeprom_data.mc2_temp_lo    = 0.0f;    // from datasheet
-	eeprom_data.dcdc_temp_hi   = 85.0f;   // from datasheet
-	eeprom_data.dcdc_temp_lo   = -40.0f;  // from datasheet
-	eeprom_data.spare_therm_hi = 400.0f;
-	eeprom_data.spare_therm_lo = -273.0f;
+	eeprom_data.mtr2_temp_lo   = -15.0f;
+	eeprom_data.mc1_temp_hi    = 400.0f;   // not installed
+	eeprom_data.mc1_temp_lo    = -273.0f;    // not installed
+	eeprom_data.mc2_temp_hi    = 400.0f;   // not installed
+	eeprom_data.mc2_temp_lo    = -273.0f;    // not installed
+	eeprom_data.dcdc_temp_hi   = 400.0f;   // not installed
+	eeprom_data.dcdc_temp_lo   = -273.0f;  // not installed
+	eeprom_data.spare_therm_hi = 400.0f;  // not installed
+	eeprom_data.spare_therm_lo = -273.0f; // not installed
 
 	// voltage limits (in Volts)
 	eeprom_data.vmon_3v3_hi    = 3.7f;
