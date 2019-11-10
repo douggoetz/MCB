@@ -143,6 +143,21 @@ void InternalSerialDriverMCB::HandleASCII(void)
 			state_queue->Push(ACT_SET_DOCK_A);
 		}
 		break;
+	case MCB_TEMP_LIMITS:
+		if (dibComm.RX_Temp_Limits(&(mcbParameters.temp_limits[0]),&(mcbParameters.temp_limits[1]),&(mcbParameters.temp_limits[2]),&(mcbParameters.temp_limits[3]),&(mcbParameters.temp_limits[4]),&(mcbParameters.temp_limits[5]))) {
+			state_queue->Push(ACT_TEMP_LIMITS);
+		}
+		break;
+	case MCB_TORQUE_LIMITS:
+		if (dibComm.RX_Torque_Limits(&(mcbParameters.torque_limits[0]),&(mcbParameters.torque_limits[1]))) {
+			state_queue->Push(ACT_TORQUE_LIMITS);
+		}
+		break;
+	case MCB_CURR_LIMITS:
+		if (dibComm.RX_Curr_Limits(&(mcbParameters.curr_limits[0]),&(mcbParameters.curr_limits[1]))) {
+			state_queue->Push(ACT_CURR_LIMITS);
+		}
+		break;
 	default:
 		storageManager.LogSD("Unknown DIB RX message", ERR_DATA);
 		break;
@@ -173,6 +188,9 @@ void InternalSerialDriverMCB::PrintDebugMenu()
 	PrintDebugCommand(MCB_OUT_ACC, ",acc;\t(out acceleration)");
 	PrintDebugCommand(MCB_IN_ACC, ",acc;\t(in acceleration)");
 	PrintDebugCommand(MCB_DOCK_ACC, ",acc;\t(dock acceleration)");
+	PrintDebugCommand(MCB_TEMP_LIMITS, ",mtr1hi,mtr1lo,mtr2hi,mtr2lo,mc1hi,mc1lo;\t(temp limits)");
+	PrintDebugCommand(MCB_TORQUE_LIMITS, ",reel_hi,reel_lo;\t(torque limits)");
+	PrintDebugCommand(MCB_CURR_LIMITS,",reel_hi,reel_lo\t(current limits)");
 	Serial.println("--------------------");
 }
 

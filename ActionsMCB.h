@@ -37,6 +37,9 @@ enum State_Actions_t : uint8_t {
     ACT_SET_DOCK_A,
     ACT_SET_SERIAL,
     ACT_ZERO_REEL,
+    ACT_TEMP_LIMITS,
+    ACT_TORQUE_LIMITS,
+    ACT_CURR_LIMITS,
 
     // values to send
     ACT_SEND_POSITION,

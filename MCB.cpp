@@ -288,6 +288,25 @@ void MCB::PerformActions(void)
 			}
 
 			break;
+		case ACT_TEMP_LIMITS:
+			EEPROM_UPDATE_FLOAT(storageManager, mtr1_temp_hi, dibDriver.mcbParameters.temp_limits[0]);
+			EEPROM_UPDATE_FLOAT(storageManager, mtr1_temp_lo, dibDriver.mcbParameters.temp_limits[1]);
+			EEPROM_UPDATE_FLOAT(storageManager, mtr2_temp_hi, dibDriver.mcbParameters.temp_limits[2]);
+			EEPROM_UPDATE_FLOAT(storageManager, mtr2_temp_lo, dibDriver.mcbParameters.temp_limits[3]);
+			EEPROM_UPDATE_FLOAT(storageManager, mc1_temp_hi, dibDriver.mcbParameters.temp_limits[4]);
+			EEPROM_UPDATE_FLOAT(storageManager, mc1_temp_lo, dibDriver.mcbParameters.temp_limits[5]);
+			dibDriver.dibComm.TX_Ack(MCB_TEMP_LIMITS,true);
+			break;
+		case ACT_TORQUE_LIMITS:
+			EEPROM_UPDATE_FLOAT(storageManager, reel_torque_hi, dibDriver.mcbParameters.torque_limits[0]);
+			EEPROM_UPDATE_FLOAT(storageManager, reel_torque_lo, dibDriver.mcbParameters.torque_limits[1]);
+			dibDriver.dibComm.TX_Ack(MCB_TORQUE_LIMITS,true);
+			break;
+		case ACT_CURR_LIMITS:
+			EEPROM_UPDATE_FLOAT(storageManager, imon_mtr1_hi, dibDriver.mcbParameters.curr_limits[0]);
+			EEPROM_UPDATE_FLOAT(storageManager, imon_mtr1_lo, dibDriver.mcbParameters.curr_limits[1]);
+			dibDriver.dibComm.TX_Ack(MCB_CURR_LIMITS,true);
+			break;
 		default:
 			storageManager.LogSD("Unknown state manager action", ERR_DATA);
 			break;
@@ -420,7 +439,16 @@ void MCB::LogFault(void)
 
 bool MCB::ReelControllerOn(void)
 {
-	if (reel_initialized) return true;
+	if (reel_initialized) {
+		if (!reel.SendEndInit() || !reel.SetAxisOn()) {
+			powerController.ReelOff();
+			action_queue.Push(ACT_SWITCH_READY);
+			storageManager.LogSD("Error starting reel control loops", ERR_DATA);
+			dibDriver.dibComm.TX_Error("Error starting reel control loops");
+			return false;
+		}
+		return true;
+	}
 
 	powerController.ReelOn();
 
@@ -480,6 +508,16 @@ bool MCB::LevelWindControllerOn(void)
 		action_queue.Push(ACT_SWITCH_READY);
 		storageManager.LogSD("Error starting level wind control loops", ERR_DATA);
 		dibDriver.dibComm.TX_Error("Error starting level wind control loops");
+		return false;
+	}
+
+	// restart the reel drive control loops
+	if (!reel.SendEndInit() || !reel.SetAxisOn()) {
+		powerController.LevelWindOff();
+		powerController.ReelOff();
+		action_queue.Push(ACT_SWITCH_READY);
+		storageManager.LogSD("Error starting reel control loops", ERR_DATA);
+		dibDriver.dibComm.TX_Error("Error starting reel control loops in level wind on");
 		return false;
 	}
 

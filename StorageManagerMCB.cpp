@@ -314,40 +314,40 @@ void StorageManagerMCB::ReconfigureEEPROM() {
 	eeprom_data.mtr1_temp_lo   = -15.0f;
 	eeprom_data.mtr2_temp_hi   = 60.0f;
 	eeprom_data.mtr2_temp_lo   = -15.0f;
-	eeprom_data.mc1_temp_hi    = 400.0f;   // not installed
-	eeprom_data.mc1_temp_lo    = -273.0f;    // not installed
-	eeprom_data.mc2_temp_hi    = 400.0f;   // not installed
-	eeprom_data.mc2_temp_lo    = -273.0f;    // not installed
-	eeprom_data.dcdc_temp_hi   = 400.0f;   // not installed
-	eeprom_data.dcdc_temp_lo   = -273.0f;  // not installed
+	eeprom_data.mc1_temp_hi    = 80.0f;
+	eeprom_data.mc1_temp_lo    = -40.0f;
+	eeprom_data.mc2_temp_hi    = 400.0f;  // not using limits
+	eeprom_data.mc2_temp_lo    = -273.0f; // not using limits
+	eeprom_data.dcdc_temp_hi   = 400.0f;  // not installed
+	eeprom_data.dcdc_temp_lo   = -273.0f; // not installed
 	eeprom_data.spare_therm_hi = 400.0f;  // not installed
 	eeprom_data.spare_therm_lo = -273.0f; // not installed
 
 	// voltage limits (in Volts)
-	eeprom_data.vmon_3v3_hi    = 3.7f;
-	eeprom_data.vmon_3v3_lo    = 3.0f;
-	eeprom_data.vmon_15v_hi    = 20.0f;
-	eeprom_data.vmon_15v_lo    = 12.0f;
-	eeprom_data.vmon_20v_hi    = 26.0f;
-	eeprom_data.vmon_20v_lo    = 2.8f;  // when mcs are off, sits around 3.0V, need new mode
-	eeprom_data.vmon_spool_hi  = 3.6f;
-	eeprom_data.vmon_spool_lo  = 0.0f;
+	eeprom_data.vmon_3v3_hi    = 30.0f; // not using limits
+	eeprom_data.vmon_3v3_lo    = -5.0f; // not using limits
+	eeprom_data.vmon_15v_hi    = 30.0f; // not using limits
+	eeprom_data.vmon_15v_lo    = -5.0f; // not using limits
+	eeprom_data.vmon_20v_hi    = 30.0f; // not using limits
+	eeprom_data.vmon_20v_lo    = -5.0f; // not using limits
+	eeprom_data.vmon_spool_hi  = 30.0f; // not using limits
+	eeprom_data.vmon_spool_lo  = -5.0f; // not using limits
 
 	// current limits (in Amps, only very rough estimates, currently inaccurate)
-	eeprom_data.imon_brake_hi  = 12.0f;
-	eeprom_data.imon_brake_lo  = -10.0f;
-	eeprom_data.imon_mc_hi     = 12.0f;
-	eeprom_data.imon_mc_lo     = -10.0f;
+	eeprom_data.imon_brake_hi  = 30.0f;  // not using limits
+	eeprom_data.imon_brake_lo  = -30.0f; // not using limits
+	eeprom_data.imon_mc_hi     = 30.0f;  // not using limits
+	eeprom_data.imon_mc_lo     = -30.0f; // not using limits
 	eeprom_data.imon_mtr1_hi   = 13.75f;
 	eeprom_data.imon_mtr1_lo   = -10.0f;
-	eeprom_data.imon_mtr2_hi   = 12.0f;
-	eeprom_data.imon_mtr2_lo   = -10.0f;
+	eeprom_data.imon_mtr2_hi   = 30.0f;  // not using limits
+	eeprom_data.imon_mtr2_lo   = -30.0f; // not using limits
 
 	// torque limits
 	eeprom_data.reel_torque_hi = 500.0f;  // approximately Newtons
 	eeprom_data.reel_torque_lo = -500.0f; // approximately Newtons
-	eeprom_data.lw_torque_hi   = 1000.0f;  // unknown engineering
-	eeprom_data.lw_torque_lo   = -1000.0f; // unknown engineering
+	eeprom_data.lw_torque_hi   = 2000.0f;  // not using limits
+	eeprom_data.lw_torque_lo   = -2000.0f; // not using limits
 
 	// telemetry sample averaging numbers
 	eeprom_data.tmslow_num_samples = 60; // should be divisible by the fast number (max value 60)

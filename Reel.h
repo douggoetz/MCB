@@ -63,12 +63,12 @@
 #endif
 
 #ifdef INST_FLOATS // defined in HardwareMCB.h
-#define STOP_PROFILE_R		0x4028
-#define REEL_VARIABLE_R		0x402D
-#define CAM_SETUP_R			0x4048
-#define CAM_STOP_R			0x4056
-#define BRAKE_ON_R			0x405C
-#define BRAKE_OFF_R			0x4061
+#define STOP_PROFILE_R		0x4026
+#define REEL_VARIABLE_R		0x402B
+#define CAM_SETUP_R			0x4046
+#define CAM_STOP_R			0x4055
+#define BRAKE_ON_R			0x405A
+#define BRAKE_OFF_R			0x405F
 #endif
 
 // Position logging in case of power cycle

@@ -16,7 +16,6 @@
 #include "Queue.h"
 #include <StdInt.h>
 
-// TODO: implement struct to hold values from DIB/PIB
 struct MCBParameters_t {
 	// deploy
 	float deploy_length;
@@ -32,6 +31,10 @@ struct MCBParameters_t {
 	float dock_length;
 	float dock_velocity;
 	float dock_acceleration;
+
+	float temp_limits[6];
+	float torque_limits[2];
+	float curr_limits[2];
 };
 
 class InternalSerialDriverMCB {
