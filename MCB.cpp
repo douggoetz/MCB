@@ -374,17 +374,16 @@ bool MCB::CheckLevelWind(void)
 		action_queue.Push(ACT_SWITCH_NOMINAL);
 		Serial.println("Motion fault (lw)");
 		LogFault();
-	} else if (levelWind.drive_status.motion_complete) {
-		if (lw_direction_out) {
-			if (!levelWind.WindIn()) {
-				action_queue.Push(ACT_SWITCH_NOMINAL);
-				Serial.println("Unable to command next lw segment");
-			}
-		} else {
-			if (!levelWind.WindOut()) {
-				action_queue.Push(ACT_SWITCH_NOMINAL);
-				Serial.println("Unable to command next lw segment");
-			}
+	} else if (!lw_direction_out && levelWind.drive_status.motion_complete) {
+		if (!levelWind.WindOut()) {
+			action_queue.Push(ACT_SWITCH_NOMINAL);
+			Serial.println("Unable to command next lw segment");
+		}
+		lw_direction_out ^= true; // flip direction tracker
+	} else if (lw_direction_out && levelWind.drive_status.lsp_event && levelWind.drive_status.motion_complete) {
+		if (!levelWind.WindIn()) {
+			action_queue.Push(ACT_SWITCH_NOMINAL);
+			Serial.println("Unable to command next lw segment");
 		}
 		lw_direction_out ^= true; // flip direction tracker
 	}
