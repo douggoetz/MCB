@@ -295,16 +295,26 @@ void MCB::PerformActions(void)
 			EEPROM_UPDATE_FLOAT(storageManager, mtr2_temp_lo, dibDriver.mcbParameters.temp_limits[3]);
 			EEPROM_UPDATE_FLOAT(storageManager, mc1_temp_hi, dibDriver.mcbParameters.temp_limits[4]);
 			EEPROM_UPDATE_FLOAT(storageManager, mc1_temp_lo, dibDriver.mcbParameters.temp_limits[5]);
+			limitMonitor.temp_sensors[MTR1_THERM].limit_hi = dibDriver.mcbParameters.temp_limits[0];
+			limitMonitor.temp_sensors[MTR1_THERM].limit_lo = dibDriver.mcbParameters.temp_limits[1];
+			limitMonitor.temp_sensors[MTR2_THERM].limit_hi = dibDriver.mcbParameters.temp_limits[2];
+			limitMonitor.temp_sensors[MTR2_THERM].limit_lo = dibDriver.mcbParameters.temp_limits[3];
+			limitMonitor.temp_sensors[MC1_THERM].limit_hi = dibDriver.mcbParameters.temp_limits[4];
+			limitMonitor.temp_sensors[MC1_THERM].limit_lo = dibDriver.mcbParameters.temp_limits[5];
 			dibDriver.dibComm.TX_Ack(MCB_TEMP_LIMITS,true);
 			break;
 		case ACT_TORQUE_LIMITS:
 			EEPROM_UPDATE_FLOAT(storageManager, reel_torque_hi, dibDriver.mcbParameters.torque_limits[0]);
 			EEPROM_UPDATE_FLOAT(storageManager, reel_torque_lo, dibDriver.mcbParameters.torque_limits[1]);
+			limitMonitor.motor_torques[0].limit_hi = dibDriver.mcbParameters.torque_limits[0];
+			limitMonitor.motor_torques[0].limit_lo = dibDriver.mcbParameters.torque_limits[1];
 			dibDriver.dibComm.TX_Ack(MCB_TORQUE_LIMITS,true);
 			break;
 		case ACT_CURR_LIMITS:
 			EEPROM_UPDATE_FLOAT(storageManager, imon_mtr1_hi, dibDriver.mcbParameters.curr_limits[0]);
 			EEPROM_UPDATE_FLOAT(storageManager, imon_mtr1_lo, dibDriver.mcbParameters.curr_limits[1]);
+			limitMonitor.imon_channels[IMON_MTR1].limit_hi = dibDriver.mcbParameters.curr_limits[0];
+			limitMonitor.imon_channels[IMON_MTR1].limit_lo = dibDriver.mcbParameters.curr_limits[1];
 			dibDriver.dibComm.TX_Ack(MCB_CURR_LIMITS,true);
 			break;
 		default:

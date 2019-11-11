@@ -146,16 +146,22 @@ void InternalSerialDriverMCB::HandleASCII(void)
 	case MCB_TEMP_LIMITS:
 		if (dibComm.RX_Temp_Limits(&(mcbParameters.temp_limits[0]),&(mcbParameters.temp_limits[1]),&(mcbParameters.temp_limits[2]),&(mcbParameters.temp_limits[3]),&(mcbParameters.temp_limits[4]),&(mcbParameters.temp_limits[5]))) {
 			state_queue->Push(ACT_TEMP_LIMITS);
+		} else {
+			Serial.println("Error setting temp limits");
 		}
 		break;
 	case MCB_TORQUE_LIMITS:
 		if (dibComm.RX_Torque_Limits(&(mcbParameters.torque_limits[0]),&(mcbParameters.torque_limits[1]))) {
 			state_queue->Push(ACT_TORQUE_LIMITS);
+		} else {
+			Serial.println("Error setting torque limits");
 		}
 		break;
 	case MCB_CURR_LIMITS:
 		if (dibComm.RX_Curr_Limits(&(mcbParameters.curr_limits[0]),&(mcbParameters.curr_limits[1]))) {
 			state_queue->Push(ACT_CURR_LIMITS);
+		} else {
+			Serial.println("Error setting temp limits");
 		}
 		break;
 	default:

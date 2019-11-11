@@ -81,7 +81,7 @@ void MonitorMCB::Monitor(void)
 
     HandleCommands();
 
-    limits_ok &= CheckVoltages();
+    CheckVoltages(); // no active voltage limits
     limits_ok &= CheckCurrents();
     if (!monitor_low_power) {
         limits_ok &= CheckTemperatures();
@@ -90,7 +90,6 @@ void MonitorMCB::Monitor(void)
     if (monitor_reel || monitor_levelwind) {
         limits_ok &= CheckTorques();
         UpdatePositions();
-        //PrintMotorData();
         if (AggregateMotionData()) { // returns true if ready to send
             SendMotionData();
         }

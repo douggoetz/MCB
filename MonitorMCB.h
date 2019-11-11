@@ -99,7 +99,38 @@ public:
     bool VerifyDeployVoltage(void);
 
     // if a limit is exceeded, the relevant info is written to this string
-    char limit_error[100];
+    char limit_error[100];// temperature sensor table (hard-coded limits will be replace at init from EEPROM)
+
+    Temp_Sensor_t temp_sensors[NUM_TEMP_SENSORS] =
+        /* last_temp | limit_hi | limit_lo | channel_num    | channel_type     | sens_err | over_temp | under_temp */
+        {{ 0.0f,       100.0f,     -100.0f,  MTR1_THERM_CH,   THERMISTOR_44006,  false,     false,      false},
+         { 0.0f,       100.0f,     -100.0f,  MTR2_THERM_CH,   THERMISTOR_44006,  false,     false,      false},
+         { 0.0f,       100.0f,     -100.0f,  MC1_THERM_CH,    THERMISTOR_44006,  false,     false,      false},
+         { 0.0f,       100.0f,     -100.0f,  MC2_THERM_CH,    THERMISTOR_44006,  false,     false,      false},
+         { 0.0f,       100.0f,     -100.0f,  DCDC_THERM_CH,   THERMISTOR_44006,  false,     false,      false},
+         { 0.0f,       100.0f,     -100.0f,  SPARE_THERM_CH,  THERMISTOR_44006,  false,     false,      false}};
+
+    // voltage ADC channel table (hard-coded limits will be replaced at init from EEPROM)
+    ADC_Voltage_t vmon_channels[NUM_VMON_CHANNELS] =
+        /* last_volt | limit_hi | limit_lo | volt_div | last_raw | channel_pin   | over_volt | under_volt */
+        {{ 0.0f,       3.8f,      2.6f,      0.5f,      0,         A_VMON_3V3,     false,      false},
+         { 0.0f,       20.0f,     12.0f,     0.102f,    0,         A_VMON_15V,     false,      false},
+         { 0.0f,       26.0f,     18.0f,     0.0746f,   0,         A_VMON_20V,     false,      false},
+         { 0.0f,       3.6f,      0.0f,      1,         0,         A_SPOOL_LEVEL,  false,      false}};
+
+    // current ADC channel table (hard-coded limits will be replaced at init from EEPROM)
+    ADC_Current_t imon_channels[NUM_IMON_CHANNELS] =
+        /* last_curr | limit_hi | limit_lo | pulldown_res | last_raw | channel_pin  | over_curr | under_curr */
+        {{ 0.0f,       5.0f,      -2.0f,     RES_15K,       0,         A_IMON_BRK,    false,      false},
+         { 0.0f,       5.0f,      -2.0f,     RES_15K,       0,         A_IMON_MC,     false,      false},
+         { 0.0f,       4.5f,      -2.0f,     RES_2K,        0,         A_IMON_MTR1,   false,      false},
+         { 0.0f,       5.0f,      -2.0f,     RES_2K,        0,         A_IMON_MTR2,   false,      false}};
+
+    Motor_Torque_t motor_torques[2] =
+        /* last torque | limit_hi | limit_lo | conversion | read_error | over_torque | under_torque */
+        {{0.0f,          500.0f,    -500.0f,   500.0f,      false,       false,        false},
+         {0.0f,          500.0f,    -500.0f,   1.0f,        false,       false,        false}};
+
 
 private:
     // read and respond to commands on the monitor_queue
@@ -144,37 +175,6 @@ private:
     LevelWind * levelWind;
     Reel * reel;
     InternalSerialDriverMCB * dibDriver;
-
-    // temperature sensor table (hard-coded limits will be replace at init from EEPROM)
-    Temp_Sensor_t temp_sensors[NUM_TEMP_SENSORS] =
-        /* last_temp | limit_hi | limit_lo | channel_num    | channel_type     | sens_err | over_temp | under_temp */
-        {{ 0.0f,       100.0f,     -100.0f,  MTR1_THERM_CH,   THERMISTOR_44006,  false,     false,      false},
-         { 0.0f,       100.0f,     -100.0f,  MTR2_THERM_CH,   THERMISTOR_44006,  false,     false,      false},
-         { 0.0f,       100.0f,     -100.0f,  MC1_THERM_CH,    THERMISTOR_44006,  false,     false,      false},
-         { 0.0f,       100.0f,     -100.0f,  MC2_THERM_CH,    THERMISTOR_44006,  false,     false,      false},
-         { 0.0f,       100.0f,     -100.0f,  DCDC_THERM_CH,   THERMISTOR_44006,  false,     false,      false},
-         { 0.0f,       100.0f,     -100.0f,  SPARE_THERM_CH,  THERMISTOR_44006,  false,     false,      false}};
-
-    // voltage ADC channel table (hard-coded limits will be replaced at init from EEPROM)
-    ADC_Voltage_t vmon_channels[NUM_VMON_CHANNELS] =
-        /* last_volt | limit_hi | limit_lo | volt_div | last_raw | channel_pin   | over_volt | under_volt */
-        {{ 0.0f,       3.8f,      2.6f,      0.5f,      0,         A_VMON_3V3,     false,      false},
-         { 0.0f,       20.0f,     12.0f,     0.102f,    0,         A_VMON_15V,     false,      false},
-         { 0.0f,       26.0f,     18.0f,     0.0746f,   0,         A_VMON_20V,     false,      false},
-         { 0.0f,       3.6f,      0.0f,      1,         0,         A_SPOOL_LEVEL,  false,      false}};
-
-    // current ADC channel table (hard-coded limits will be replaced at init from EEPROM)
-    ADC_Current_t imon_channels[NUM_IMON_CHANNELS] =
-        /* last_curr | limit_hi | limit_lo | pulldown_res | last_raw | channel_pin  | over_curr | under_curr */
-        {{ 0.0f,       5.0f,      -2.0f,     RES_15K,       0,         A_IMON_BRK,    false,      false},
-         { 0.0f,       5.0f,      -2.0f,     RES_15K,       0,         A_IMON_MC,     false,      false},
-         { 0.0f,       4.5f,      -2.0f,     RES_2K,        0,         A_IMON_MTR1,   false,      false},
-         { 0.0f,       5.0f,      -2.0f,     RES_2K,        0,         A_IMON_MTR2,   false,      false}};
-
-    Motor_Torque_t motor_torques[2] =
-        /* last torque | limit_hi | limit_lo | conversion | read_error | over_torque | under_torque */
-        {{0.0f,          500.0f,    -500.0f,   500.0f,      false,       false,        false},
-         {0.0f,          500.0f,    -500.0f,   1.0f,        false,       false,        false}};
 
     // motion data buffer for sending to the DIB/PIB
     uint8_t tm_buffer[MOTION_TM_SIZE];
