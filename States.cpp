@@ -228,13 +228,7 @@ void MCB::ReelIn()
 #endif
 
 #ifdef INST_FLOATS
-		if (!levelWind.Home()) {
-			dibDriver.dibComm.TX_Error("Error commanding lw home");
-			action_queue.Push(ACT_SWITCH_NOMINAL);
-		} else {
-			timing_variable = millis() + LW_HOME_MILLIS;
-			substate = REEL_IN_HOME;
-		}
+		substate = REEL_IN_START_CAM; // will home every wind in
 #endif
 
 		break;
@@ -273,7 +267,7 @@ void MCB::ReelIn()
 		if (!reel.CamSetup() || !levelWind.StartCamming()) {
 #endif
 #ifdef INST_FLOATS
-		if (!levelWind.WindOut()) {
+		if (!levelWind.WindOut()) { // will home
 #endif
 			reel.StopProfile();
 			dibDriver.dibComm.TX_Error("Error starting camming");
@@ -283,6 +277,8 @@ void MCB::ReelIn()
 		}
 
 		camming = true;
+		lw_direction_out = true;
+		delay(100);
 		substate = REEL_IN_MONITOR;
 		break;
 

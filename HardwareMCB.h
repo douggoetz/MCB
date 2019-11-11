@@ -14,8 +14,8 @@
 #include <stdint.h>
 
 // Which instrument?
-#define INST_RACHUTS
-//#define INST_FLOATS
+//#define INST_RACHUTS
+#define INST_FLOATS
 
 // Pin definitions
 #define MC1_IN1_PIN				2

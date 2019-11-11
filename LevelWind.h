@@ -34,9 +34,9 @@
 #ifdef INST_FLOATS // defined in HardwareMCB.h
 #define STOP_PROFILE_LW		0x401F
 #define WIND_OUT_LW			0x4022
-#define WIND_IN_LW			0x4039
-#define SET_CENTER_LW		0x4050
-#define HOME_LW				0x4067
+#define WIND_IN_LW			0x404D
+#define SET_CENTER_LW		0x4064
+#define HOME_LW				0x407B
 #endif
 
 class LevelWind : public Technosoft {
