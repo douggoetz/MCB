@@ -287,6 +287,8 @@ void MCB::PerformActions(void)
 				dibDriver.dibComm.TX_ASCII(MCB_MOTION_FINISHED);
 			}
 
+			dibDriver.dibComm.TX_Ack(MCB_FULL_RETRACT,true);
+
 			break;
 		case ACT_TEMP_LIMITS:
 			EEPROM_UPDATE_FLOAT(storageManager, mtr1_temp_hi, dibDriver.mcbParameters.temp_limits[0]);
@@ -351,7 +353,6 @@ void MCB::CheckReel(void)
 	}
 }
 
-#ifdef INST_RACHUTS
 // returns true if and only if motion complete
 bool MCB::CheckLevelWind(void)
 {
@@ -370,15 +371,16 @@ bool MCB::CheckLevelWind(void)
 	}
 	return false;
 }
-#endif
 
 #ifdef INST_FLOATS
-bool MCB::CheckLevelWind(void)
+bool MCB::CheckLevelWindCam(void)
 {
 	if (!levelWind.UpdateDriveStatus()) {
 		storageManager.LogSD("Error updating level wind drive status", ERR_DATA);
 		return false;
 	}
+
+	if (levelWind.drive_status.lsp_event) homed = true;
 
 	if (levelWind.drive_status.fault) {
 		action_queue.Push(ACT_SWITCH_NOMINAL);

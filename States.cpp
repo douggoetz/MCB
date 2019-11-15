@@ -168,8 +168,10 @@ void MCB::ReelOut()
 
 void MCB::ReelIn()
 {
+#ifdef INST_RACHUTS
 	// used for inter-loop timing
 	static uint32_t timing_variable = 0;
+#endif
 
 	switch (substate) {
 	case STATE_ENTRY:
@@ -234,6 +236,10 @@ void MCB::ReelIn()
 		break;
 
 	case REEL_IN_HOME:
+#ifdef INST_RACHUTS
+		// check if the reel finished early
+		CheckReel();
+
 		// make sure motion is complete and the limit switch has been hit before moving one
 		// if thirty seconds passes, move on anyway
 		if (levelWind.UpdateDriveStatus()) {
@@ -246,16 +252,11 @@ void MCB::ReelIn()
 
 		homed = true;
 
-#ifdef INST_RACHUTS
 		if (!camming) {
 			substate = REEL_IN_START_CAM;
 		} else {
 			substate = REEL_IN_MONITOR;
 		}
-#endif
-
-#ifdef INST_FLOATS
-		substate = REEL_IN_START_CAM;
 #endif
 
 		break;
@@ -284,7 +285,7 @@ void MCB::ReelIn()
 
 	case REEL_IN_MONITOR:
 		// will exit once motion complete or fault
-		CheckLevelWind();
+		CheckLevelWindCam();
 		CheckReel();
 
 		if (millis() - last_pos_print > 5000) {
@@ -300,6 +301,8 @@ void MCB::ReelIn()
 			reel.UpdatePosition();
 #ifdef INST_FLOATS
 			levelWind.StopProfile();
+			delay(50);
+			levelWind.StopProfile(); // stop home then cam
 #endif
 		} else {
 			ReelControllerOff();
