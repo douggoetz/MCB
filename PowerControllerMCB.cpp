@@ -31,8 +31,11 @@ PowerControllerMCB::PowerControllerMCB()
 void PowerControllerMCB::ReelOn()
 {
 	digitalWrite(MC_ENABLE_PIN, HIGH);
+	delay(100);
 	digitalWrite(MC1_ENABLE_PIN, HIGH);
+	delay(100);
 	digitalWrite(MTR1_ENABLE_PIN, HIGH);
+	delay(100);
 	digitalWrite(BRAKE_ENABLE_PIN, HIGH);
 }
 
@@ -46,7 +49,7 @@ void PowerControllerMCB::ReelOff()
 	if (!digitalRead(MC2_ENABLE_PIN)) {
 		LevelWindOff();
 	}
-	
+
 	digitalWrite(MC_ENABLE_PIN, LOW);
 }
 
@@ -58,6 +61,7 @@ void PowerControllerMCB::LevelWindOn()
 	}
 
 	digitalWrite(MC2_ENABLE_PIN, LOW);
+	delay(100);
 	digitalWrite(MTR2_ENABLE_PIN, HIGH);
 }
 
