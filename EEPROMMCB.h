@@ -11,6 +11,11 @@
 
 #include "TeensyEEPROM.h"
 
+struct Limit_Config_t {
+    float hi;
+    float lo;
+};
+
 class EEPROMMCB : public TeensyEEPROM {
 private:
     void RegisterAll();
@@ -36,44 +41,28 @@ public:
 	EEPROMData<float> dock_acceleration;
 
 	// temperature limits
-	EEPROMData<float> mtr1_temp_hi;
-	EEPROMData<float> mtr1_temp_lo;
-	EEPROMData<float> mtr2_temp_hi;
-	EEPROMData<float> mtr2_temp_lo;
-	EEPROMData<float> mc1_temp_hi;
-	EEPROMData<float> mc1_temp_lo;
-	EEPROMData<float> mc2_temp_hi;
-	EEPROMData<float> mc2_temp_lo;
-	EEPROMData<float> dcdc_temp_hi;
-	EEPROMData<float> dcdc_temp_lo;
-	EEPROMData<float> spare_therm_hi;
-	EEPROMData<float> spare_therm_lo;
+	EEPROMData<Limit_Config_t> mtr1_temp_lim;
+	EEPROMData<Limit_Config_t> mtr2_temp_lim;
+	EEPROMData<Limit_Config_t> mc1_temp_lim;
+	EEPROMData<Limit_Config_t> mc2_temp_lim;
+	EEPROMData<Limit_Config_t> dcdc_temp_lim;
+	EEPROMData<Limit_Config_t> spare_therm_lim;
 
 	// voltage monitor limits
-	EEPROMData<float> vmon_3v3_hi;
-	EEPROMData<float> vmon_3v3_lo;
-	EEPROMData<float> vmon_15v_hi;
-	EEPROMData<float> vmon_15v_lo;
-	EEPROMData<float> vmon_20v_hi;
-	EEPROMData<float> vmon_20v_lo;
-	EEPROMData<float> vmon_spool_hi;
-	EEPROMData<float> vmon_spool_lo;
+	EEPROMData<Limit_Config_t> vmon_3v3_lim;
+	EEPROMData<Limit_Config_t> vmon_15v_lim;
+	EEPROMData<Limit_Config_t> vmon_20v_lim;
+	EEPROMData<Limit_Config_t> vmon_spool_lim;
 
 	// current monitor limits
-	EEPROMData<float> imon_brake_hi;
-	EEPROMData<float> imon_brake_lo;
-	EEPROMData<float> imon_mc_hi;
-	EEPROMData<float> imon_mc_lo;
-	EEPROMData<float> imon_mtr1_hi;
-	EEPROMData<float> imon_mtr1_lo;
-	EEPROMData<float> imon_mtr2_hi;
-	EEPROMData<float> imon_mtr2_lo;
+	EEPROMData<Limit_Config_t> imon_brake_lim;
+	EEPROMData<Limit_Config_t> imon_mc_lim;
+	EEPROMData<Limit_Config_t> imon_mtr1_lim;
+	EEPROMData<Limit_Config_t> imon_mtr2_lim;
 
 	// torque limits
-	EEPROMData<float> reel_torque_hi;
-	EEPROMData<float> reel_torque_lo;
-	EEPROMData<float> lw_torque_hi;
-	EEPROMData<float> lw_torque_lo;
+	EEPROMData<Limit_Config_t> reel_torque_lim;
+	EEPROMData<Limit_Config_t> lw_torque_lim;
 
 	// telemetry sample averaging numbers
 	EEPROMData<uint8_t> tmslow_num_samples;
