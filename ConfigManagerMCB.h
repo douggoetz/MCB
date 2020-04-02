@@ -10,10 +10,14 @@
 #define CONFIGMANAGERMCB_H
 
 #include "TeensyEEPROM.h"
+#include "float.h"
 
 struct Limit_Config_t {
     float hi;
     float lo;
+
+	// constuctor defaults to float max and min
+	Limit_Config_t(float in_hi = FLT_MAX, float in_lo = FLT_MIN) : hi(in_hi), lo(in_lo) {}
 };
 
 class ConfigManagerMCB : public TeensyEEPROM {

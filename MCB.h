@@ -20,6 +20,7 @@
 #include "LTC2983Manager.h"
 #include "PowerControllerMCB.h"
 #include "StorageManagerMCB.h"
+#include "ConfigManagerMCB.h"
 #include "LevelWind.h"
 #include "MonitorMCB.h"
 #include "ActionsMCB.h"
@@ -109,6 +110,7 @@ private:
 	// Hardware objects
 	PowerControllerMCB powerController;
 	StorageManagerMCB storageManager;
+	ConfigManagerMCB configManager;
 
 	// Serial interface objects
 	InternalSerialDriverMCB dibDriver;
