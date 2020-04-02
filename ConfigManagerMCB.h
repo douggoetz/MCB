@@ -1,13 +1,13 @@
 /*
- *  EEPROMMCB.h
+ *  ConfigManagerMCB.h
  *  Author:  Alex St. Clair
  *  Created: April 2020
  *
  *  This class manages configuration storage in EEPROM on the MCB
  */
 
-#ifndef EEPROMMCB_H
-#define EEPROMMCB_H
+#ifndef CONFIGMANAGERMCB_H
+#define CONFIGMANAGERMCB_H
 
 #include "TeensyEEPROM.h"
 
@@ -16,12 +16,12 @@ struct Limit_Config_t {
     float lo;
 };
 
-class EEPROMMCB : public TeensyEEPROM {
+class ConfigManagerMCB : public TeensyEEPROM {
 private:
     void RegisterAll();
 
 public:
-    EEPROMMCB();
+    ConfigManagerMCB();
 
     // constants, manually change version number here to force update
     static const uint16_t CONFIG_VERSION = 0x5C00;
@@ -71,4 +71,4 @@ public:
     // ----------------------------------------------------
 };
 
-#endif /* EEPROMMCB_H */
+#endif /* CONFIGMANAGERMCB_H */

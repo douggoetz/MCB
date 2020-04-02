@@ -1,16 +1,16 @@
 /*
- *  EEPROMMCB.cpp
+ *  ConfigManagerMCB.cpp
  *  Author:  Alex St. Clair
  *  Created: April 2020
  *
  *  This class manages configuration storage in EEPROM on the MCB
  */
 
-#include "EEPROMMCB.h"
+#include "ConfigManagerMCB.h"
 #include "Reel.h"
 #include <float.h>
 
-EEPROMMCB::EEPROMMCB()
+ConfigManagerMCB::ConfigManagerMCB()
     : TeensyEEPROM(CONFIG_VERSION, BASE_ADDRESS)
     // ------------ Hard-Coded Config Defaults ------------
 	, boot_count(0)
@@ -42,7 +42,7 @@ EEPROMMCB::EEPROMMCB()
 { }
 
 
-void EEPROMMCB::RegisterAll()
+void ConfigManagerMCB::RegisterAll()
 {
     bool success = true;
 
