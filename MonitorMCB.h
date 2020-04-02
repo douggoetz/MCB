@@ -10,6 +10,7 @@
 
 #include "InternalSerialDriverMCB.h"
 #include "StorageManagerMCB.h"
+#include "ConfigManagerMCB.h"
 #include "LTC2983Manager.h"
 #include "ActionsMCB.h"
 #include "LevelWind.h"
@@ -88,7 +89,7 @@ struct Fast_TM_t {
 
 class MonitorMCB {
 public:
-    MonitorMCB(Queue * monitor_q, Queue * action_q, Reel * reel_in, LevelWind * lw_in, InternalSerialDriverMCB * dibdriver);
+    MonitorMCB(Queue * monitor_q, Queue * action_q, Reel * reel_in, LevelWind * lw_in, InternalSerialDriverMCB * dibdriver, ConfigManagerMCB * cfgManager);
     ~MonitorMCB(void) { };
 
     // interface methods
@@ -175,6 +176,7 @@ private:
     LevelWind * levelWind;
     Reel * reel;
     InternalSerialDriverMCB * dibDriver;
+    ConfigManagerMCB * configManager;
 
     // motion data buffer for sending to the DIB/PIB
     uint8_t tm_buffer[MOTION_TM_SIZE];

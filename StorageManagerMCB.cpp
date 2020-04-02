@@ -1,6 +1,6 @@
 /*
  *  StorageManagerMCB.cpp
- *  File implementing the class that manages SD and EEPROM storage
+ *  File implementing the class that manages SD storage
  *  Author: Alex St. Clair
  *  March 2018
  *
@@ -9,10 +9,9 @@
  */
 
 #include "StorageManagerMCB.h"
-#include "Reel.h"
 
 bool StorageManagerMCB::sd_state = false;
-EEPROM_Data_t StorageManagerMCB::eeprom_data = {0};
+uint32_t StorageManagerMCB::boot_number = 0;
 String StorageManagerMCB::base_directory = "";
 
 Log_Data_Info_t StorageManagerMCB::log_data_info[NUM_LOG_DATA] = {
@@ -83,7 +82,9 @@ bool StorageManagerMCB::LogSD(String log_data, Log_Data_Type_t data_type) {
 }
 
 // Basic SD methods -----------------------------------------------------------
-bool StorageManagerMCB::StartSD(void) {
+bool StorageManagerMCB::StartSD(uint32_t boot_num) {
+	boot_number = boot_num;
+
 	if (!sd_state) {
 		if (!SD.begin(BUILTIN_SDCARD)) {
 			Serial.println("Unable to start SD card");
@@ -124,7 +125,7 @@ bool StorageManagerMCB::ConfigureDirectories(void) {
 	}
 
 	base_directory = LOG_DATA_DIR "boot";
-	base_directory += String(eeprom_data.boot_count);
+	base_directory += String(boot_number);
 	return SD.mkdir(base_directory.c_str());
 }
 
@@ -216,142 +217,4 @@ bool StorageManagerMCB::ReadSD_uint32(const char * filename, uint32_t * result, 
 	} else {
 		return false;
 	}
-}
-
-// Basic EEPROM methods -------------------------------------------------------
-bool StorageManagerMCB::LoadFromEEPROM(void) {
-	// load stored data
-	EEPROM.get(EEPROM_BASE_ADDRESS, eeprom_data);
-
-	// increment boot count
-	eeprom_data.boot_count += 1;
-	EEPROM.put(EEPROM_BASE_ADDRESS + offsetof(EEPROM_Data_t, boot_count), eeprom_data.boot_count);
-
-	// check for a valid eeprom struct version, but don't stop if invalid in case we're in flight
-	if (eeprom_data.eeprom_version != EEPROM_VERSION) {
-		Serial.println("Invalid EEPROM data version!");
-		return false;
-	}
-
-	return true;
-}
-
-bool StorageManagerMCB::Update_uint8(uint16_t offset, uint8_t data) {
-	if (EEPROM_BASE_ADDRESS + offset > EEPROM_MAX_ADDRESS) return false;
-	if (offset + sizeof(data) > sizeof(EEPROM_Data_t)) return false;
-
-	// update the software struct
-	*(((uint8_t *) &eeprom_data) + offset) = data;
-
-	// update eeprom
-	EEPROM.put(EEPROM_BASE_ADDRESS + offset, data);
-
-	return true;
-}
-
-bool StorageManagerMCB::Update_uint16(uint16_t offset, uint16_t data) {
-	if (EEPROM_BASE_ADDRESS + offset + 1 > EEPROM_MAX_ADDRESS) return false;
-	if (offset + sizeof(data) > sizeof(EEPROM_Data_t)) return false;
-
-	// update the software struct
-	*((uint16_t *) (((uint8_t *) &eeprom_data) + offset)) = data;
-
-	// update eeprom
-	EEPROM.put(EEPROM_BASE_ADDRESS + offset, data);
-
-	return true;
-}
-
-bool StorageManagerMCB::Update_uint32(uint16_t offset, uint32_t data) {
-	if (EEPROM_BASE_ADDRESS + offset + 3 > EEPROM_MAX_ADDRESS) return false;
-	if (offset + sizeof(data) > sizeof(EEPROM_Data_t)) return false;
-
-	// update the software struct
-	*((uint32_t *) (((uint8_t *) &eeprom_data) + offset)) = data;
-
-	// update eeprom
-	EEPROM.put(EEPROM_BASE_ADDRESS + offset, data);
-
-	return true;
-}
-
-bool StorageManagerMCB::Update_float(uint16_t offset, float data) {
-	if (EEPROM_BASE_ADDRESS + offset + 3 > EEPROM_MAX_ADDRESS) return false;
-	if (offset + sizeof(data) > sizeof(EEPROM_Data_t)) return false;
-
-	// update the software struct
-	*((float *) (((uint8_t *) &eeprom_data) + offset)) = data;
-
-	// update eeprom
-	EEPROM.put(EEPROM_BASE_ADDRESS + offset, data);
-
-	return true;
-}
-
-void StorageManagerMCB::ReconfigureEEPROM() {
-	// configuration management
-	eeprom_data.eeprom_version = EEPROM_VERSION;
-
-	// for software use
-	eeprom_data.boot_count = 0;
-
-	// versioning
-	eeprom_data.hardware_version[0] = 'C';
-	eeprom_data.hardware_version[1] = '0';
-	eeprom_data.software_version    = 0;
-	eeprom_data.serial_number       = 2;
-
-	// default motion parameters
-	eeprom_data.deploy_velocity      = DEFAULT_FULL_SPEED;
-	eeprom_data.deploy_acceleration  = DEFAULT_ACC;
-	eeprom_data.retract_velocity     = DEFAULT_FULL_SPEED;
-	eeprom_data.retract_acceleration = DEFAULT_ACC;
-	eeprom_data.dock_velocity        = DEFAULT_DOCK_SPEED;
-	eeprom_data.dock_acceleration    = DEFAULT_ACC;
-
-	// temperature limits (in degrees C)
-	eeprom_data.mtr1_temp_hi   = 80.0f;
-	eeprom_data.mtr1_temp_lo   = -15.0f;
-	eeprom_data.mtr2_temp_hi   = 60.0f;
-	eeprom_data.mtr2_temp_lo   = -15.0f;
-	eeprom_data.mc1_temp_hi    = 80.0f;
-	eeprom_data.mc1_temp_lo    = -40.0f;
-	eeprom_data.mc2_temp_hi    = 400.0f;  // not using limits
-	eeprom_data.mc2_temp_lo    = -273.0f; // not using limits
-	eeprom_data.dcdc_temp_hi   = 400.0f;  // not installed
-	eeprom_data.dcdc_temp_lo   = -273.0f; // not installed
-	eeprom_data.spare_therm_hi = 400.0f;  // not installed
-	eeprom_data.spare_therm_lo = -273.0f; // not installed
-
-	// voltage limits (in Volts)
-	eeprom_data.vmon_3v3_hi    = 30.0f; // not using limits
-	eeprom_data.vmon_3v3_lo    = -5.0f; // not using limits
-	eeprom_data.vmon_15v_hi    = 30.0f; // not using limits
-	eeprom_data.vmon_15v_lo    = -5.0f; // not using limits
-	eeprom_data.vmon_20v_hi    = 30.0f; // not using limits
-	eeprom_data.vmon_20v_lo    = -5.0f; // not using limits
-	eeprom_data.vmon_spool_hi  = 30.0f; // not using limits
-	eeprom_data.vmon_spool_lo  = -5.0f; // not using limits
-
-	// current limits (in Amps, only very rough estimates, currently inaccurate)
-	eeprom_data.imon_brake_hi  = 30.0f;  // not using limits
-	eeprom_data.imon_brake_lo  = -30.0f; // not using limits
-	eeprom_data.imon_mc_hi     = 30.0f;  // not using limits
-	eeprom_data.imon_mc_lo     = -30.0f; // not using limits
-	eeprom_data.imon_mtr1_hi   = 13.75f;
-	eeprom_data.imon_mtr1_lo   = -10.0f;
-	eeprom_data.imon_mtr2_hi   = 30.0f;  // not using limits
-	eeprom_data.imon_mtr2_lo   = -30.0f; // not using limits
-
-	// torque limits
-	eeprom_data.reel_torque_hi = 500.0f;  // approximately Newtons
-	eeprom_data.reel_torque_lo = -500.0f; // approximately Newtons
-	eeprom_data.lw_torque_hi   = 2000.0f;  // not using limits
-	eeprom_data.lw_torque_lo   = -2000.0f; // not using limits
-
-	// telemetry sample averaging numbers
-	eeprom_data.tmslow_num_samples = 60; // should be divisible by the fast number (max value 60)
-	eeprom_data.tmfast_num_samples = 10;
-
-	EEPROM.put(EEPROM_BASE_ADDRESS, eeprom_data);
 }

@@ -126,7 +126,7 @@ void MCB::ReelOut()
 			camming = false;
 		}
 
-		if (!reel.ReelOut(dibDriver.mcbParameters.deploy_length, dibDriver.mcbParameters.deploy_velocity, storageManager.eeprom_data.deploy_acceleration)) {
+		if (!reel.ReelOut(dibDriver.mcbParameters.deploy_length, dibDriver.mcbParameters.deploy_velocity, configManager.deploy_acceleration.Read())) {
 			dibDriver.dibComm.TX_Error("Error comanding reel out");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 		}
@@ -205,7 +205,7 @@ void MCB::ReelIn()
 		break;
 
 	case REEL_IN_START_MOTION:
-		if (!reel.ReelIn(dibDriver.mcbParameters.retract_length, dibDriver.mcbParameters.retract_velocity, storageManager.eeprom_data.retract_acceleration)) {
+		if (!reel.ReelIn(dibDriver.mcbParameters.retract_length, dibDriver.mcbParameters.retract_velocity, configManager.retract_acceleration.Read())) {
 			dibDriver.dibComm.TX_Error("Error commanding reel in");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
@@ -350,7 +350,7 @@ void MCB::Dock()
 		break;
 
 	case DOCK_START_MOTION:
-		if (!reel.ReelIn(dibDriver.mcbParameters.dock_length, dibDriver.mcbParameters.dock_velocity, storageManager.eeprom_data.dock_acceleration)) {
+		if (!reel.ReelIn(dibDriver.mcbParameters.dock_length, dibDriver.mcbParameters.dock_velocity, configManager.dock_acceleration.Read())) {
 			dibDriver.dibComm.TX_Error("Error commanding reel in for dock");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			return;
@@ -429,7 +429,7 @@ void MCB::InNoLW()
 			camming = false;
 		}
 
-		if (!reel.ReelIn(dibDriver.mcbParameters.retract_length, dibDriver.mcbParameters.retract_velocity, storageManager.eeprom_data.retract_acceleration)) {
+		if (!reel.ReelIn(dibDriver.mcbParameters.retract_length, dibDriver.mcbParameters.retract_velocity, configManager.retract_acceleration.Read())) {
 			dibDriver.dibComm.TX_Error("Error comanding reel in (no LW)");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 		}

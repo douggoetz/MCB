@@ -16,10 +16,11 @@ MCB::MCB()
 	, monitor_queue(10)
 	, powerController()
     , storageManager()
+	, configManager()
 	, dibDriver(&action_queue, &monitor_queue)
 	, reel(1)
 	, levelWind(1)
-	, limitMonitor(&monitor_queue, &action_queue, &reel, &levelWind, &dibDriver)
+	, limitMonitor(&monitor_queue, &action_queue, &reel, &levelWind, &dibDriver, &configManager)
 {
     last_pos_print = millis();
 }
@@ -35,15 +36,8 @@ void MCB::Startup()
 	DIB_SERIAL.begin(115200);
 
 	// Non-volatile storage setup
-	if (!storageManager.LoadFromEEPROM()) {
-		storageManager.ReconfigureEEPROM();
-		if (!storageManager.LoadFromEEPROM()) {
-			dibDriver.dibComm.TX_Error("MCB error loading EEPROM! Unable to reconfigure!");
-		} else {
-			dibDriver.dibComm.TX_Error("MCB error loading EEPROM! Reconfigured.");
-		}
-	}
-	if (!storageManager.StartSD()) dibDriver.dibComm.TX_Error("MCB error starting SD card!");
+	if (!configManager.Initialize()) dibDriver.dibComm.TX_Error("MCB error initializing EEPROM! Reconfigured");
+	if (!storageManager.StartSD(configManager.boot_count.Read())) dibDriver.dibComm.TX_Error("MCB error starting SD card!");
 
 	// Set up limit monitor
 	limitMonitor.InitializeSensors();
@@ -229,24 +223,24 @@ void MCB::PerformActions(void)
 			LevelWindControllerOff();
 			break;
 		case ACT_SET_DEPLOY_V:
-			EEPROM_UPDATE_FLOAT(storageManager, deploy_velocity, dibDriver.mcbParameters.deploy_velocity);
+			configManager.deploy_velocity.Write(dibDriver.mcbParameters.deploy_velocity);
 			break;
 		case ACT_SET_RETRACT_V:
-			EEPROM_UPDATE_FLOAT(storageManager, retract_velocity, dibDriver.mcbParameters.retract_velocity);
+			configManager.retract_velocity.Write(dibDriver.mcbParameters.retract_velocity);
 			break;
 		case ACT_SET_DOCK_V:
-			EEPROM_UPDATE_FLOAT(storageManager, dock_velocity, dibDriver.mcbParameters.dock_velocity);
+			configManager.dock_velocity.Write(dibDriver.mcbParameters.dock_velocity);
 			break;
 		case ACT_SET_DEPLOY_A:
-			EEPROM_UPDATE_FLOAT(storageManager, deploy_acceleration, dibDriver.mcbParameters.deploy_acceleration);
+			configManager.deploy_acceleration.Write(dibDriver.mcbParameters.deploy_acceleration);
 			dibDriver.dibComm.TX_Ack(MCB_OUT_ACC,true);
 			break;
 		case ACT_SET_RETRACT_A:
-			EEPROM_UPDATE_FLOAT(storageManager, retract_acceleration, dibDriver.mcbParameters.retract_acceleration);
+			configManager.retract_acceleration.Write(dibDriver.mcbParameters.retract_acceleration);
 			dibDriver.dibComm.TX_Ack(MCB_IN_ACC,true);
 			break;
 		case ACT_SET_DOCK_A:
-			EEPROM_UPDATE_FLOAT(storageManager, dock_acceleration, dibDriver.mcbParameters.dock_acceleration);
+			configManager.dock_acceleration.Write(dibDriver.mcbParameters.dock_acceleration);
 			dibDriver.dibComm.TX_Ack(MCB_DOCK_ACC,true);
 			break;
 		case ACT_ZERO_REEL:
@@ -291,12 +285,9 @@ void MCB::PerformActions(void)
 
 			break;
 		case ACT_TEMP_LIMITS:
-			EEPROM_UPDATE_FLOAT(storageManager, mtr1_temp_hi, dibDriver.mcbParameters.temp_limits[0]);
-			EEPROM_UPDATE_FLOAT(storageManager, mtr1_temp_lo, dibDriver.mcbParameters.temp_limits[1]);
-			EEPROM_UPDATE_FLOAT(storageManager, mtr2_temp_hi, dibDriver.mcbParameters.temp_limits[2]);
-			EEPROM_UPDATE_FLOAT(storageManager, mtr2_temp_lo, dibDriver.mcbParameters.temp_limits[3]);
-			EEPROM_UPDATE_FLOAT(storageManager, mc1_temp_hi, dibDriver.mcbParameters.temp_limits[4]);
-			EEPROM_UPDATE_FLOAT(storageManager, mc1_temp_lo, dibDriver.mcbParameters.temp_limits[5]);
+			configManager.mtr1_temp_lim.Write(Limit_Config_t(dibDriver.mcbParameters.temp_limits[0],dibDriver.mcbParameters.temp_limits[1]));
+			configManager.mtr2_temp_lim.Write(Limit_Config_t(dibDriver.mcbParameters.temp_limits[2],dibDriver.mcbParameters.temp_limits[3]));
+			configManager.mc1_temp_lim.Write(Limit_Config_t(dibDriver.mcbParameters.temp_limits[4],dibDriver.mcbParameters.temp_limits[5]));
 			limitMonitor.temp_sensors[MTR1_THERM].limit_hi = dibDriver.mcbParameters.temp_limits[0];
 			limitMonitor.temp_sensors[MTR1_THERM].limit_lo = dibDriver.mcbParameters.temp_limits[1];
 			limitMonitor.temp_sensors[MTR2_THERM].limit_hi = dibDriver.mcbParameters.temp_limits[2];
@@ -306,15 +297,13 @@ void MCB::PerformActions(void)
 			dibDriver.dibComm.TX_Ack(MCB_TEMP_LIMITS,true);
 			break;
 		case ACT_TORQUE_LIMITS:
-			EEPROM_UPDATE_FLOAT(storageManager, reel_torque_hi, dibDriver.mcbParameters.torque_limits[0]);
-			EEPROM_UPDATE_FLOAT(storageManager, reel_torque_lo, dibDriver.mcbParameters.torque_limits[1]);
+			configManager.reel_torque_lim.Write(Limit_Config_t(dibDriver.mcbParameters.torque_limits[0],dibDriver.mcbParameters.torque_limits[1]));
 			limitMonitor.motor_torques[0].limit_hi = dibDriver.mcbParameters.torque_limits[0];
 			limitMonitor.motor_torques[0].limit_lo = dibDriver.mcbParameters.torque_limits[1];
 			dibDriver.dibComm.TX_Ack(MCB_TORQUE_LIMITS,true);
 			break;
 		case ACT_CURR_LIMITS:
-			EEPROM_UPDATE_FLOAT(storageManager, imon_mtr1_hi, dibDriver.mcbParameters.curr_limits[0]);
-			EEPROM_UPDATE_FLOAT(storageManager, imon_mtr1_lo, dibDriver.mcbParameters.curr_limits[1]);
+			configManager.imon_mtr1_lim.Write(Limit_Config_t(dibDriver.mcbParameters.curr_limits[0],dibDriver.mcbParameters.curr_limits[1]));
 			limitMonitor.imon_channels[IMON_MTR1].limit_hi = dibDriver.mcbParameters.curr_limits[0];
 			limitMonitor.imon_channels[IMON_MTR1].limit_lo = dibDriver.mcbParameters.curr_limits[1];
 			dibDriver.dibComm.TX_Ack(MCB_CURR_LIMITS,true);
@@ -556,11 +545,5 @@ void MCB::LevelWindControllerOff(void)
 void MCB::PrintBootInfo()
 {
   DEBUG_SERIAL.print("MCB Boot ");
-  DEBUG_SERIAL.println(storageManager.eeprom_data.boot_count);
-  DEBUG_SERIAL.print("Hardware: Rev ");
-  DEBUG_SERIAL.print(storageManager.eeprom_data.hardware_version[0]);
-  DEBUG_SERIAL.print(" V");
-  DEBUG_SERIAL.println(storageManager.eeprom_data.hardware_version[1]);
-  DEBUG_SERIAL.print("Software: V");
-  DEBUG_SERIAL.println(storageManager.eeprom_data.software_version);
+  DEBUG_SERIAL.println(configManager.boot_count.Read());
 }
