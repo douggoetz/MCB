@@ -105,9 +105,11 @@ void InternalSerialDriverMCB::HandleASCII(void)
 		break;
 	case MCB_IGNORE_LIMITS:
 		state_queue->Push(ACT_IGNORE_LIMITS);
+		dibComm.TX_Ack(MCB_IGNORE_LIMITS, true);
 		break;
 	case MCB_USE_LIMITS:
 		state_queue->Push(ACT_USE_LIMITS);
+		dibComm.TX_Ack(ACT_USE_LIMITS, true);
 		break;
 	// messages that have parameters to parse -------------
 	case MCB_REEL_OUT:
