@@ -38,6 +38,7 @@ ConfigManagerMCB::ConfigManagerMCB()
 	, lw_torque_lim({2000.0f,-2000.0f})
 	, tmslow_num_samples(60)
 	, tmfast_num_samples(10)
+	, limits_enabled(true)
     // ----------------------------------------------------
 { }
 
@@ -71,6 +72,7 @@ void ConfigManagerMCB::RegisterAll()
 	success &= Register(&lw_torque_lim);
 	success &= Register(&tmslow_num_samples);
 	success &= Register(&tmfast_num_samples);
+	success &= Register(&limits_enabled);
 
     if (!success) {
         Serial.println("Error registering EEPROM configs");

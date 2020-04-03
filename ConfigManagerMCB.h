@@ -72,6 +72,9 @@ public:
 	EEPROMData<uint8_t> tmslow_num_samples;
 	EEPROMData<uint8_t> tmfast_num_samples;
 
+	// limit usage
+	EEPROMData<bool> limits_enabled;
+
     // ----------------------------------------------------
 };
 

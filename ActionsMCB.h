@@ -49,6 +49,8 @@ enum State_Actions_t : uint8_t {
 
     // other
     ACT_LIMIT_EXCEEDED,
+    ACT_IGNORE_LIMITS,
+    ACT_USE_LIMITS,
 
     ACT_NUM_ACTIONS, // not an action, used for counting
     ACT_UNUSED, // not an action, used as default

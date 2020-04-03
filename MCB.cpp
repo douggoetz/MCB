@@ -35,7 +35,7 @@ void MCB::Startup()
 	DEBUG_SERIAL.begin(115200);
 	DIB_SERIAL.begin(115200);
 
-	// Non-volatile storage setup
+	// Non-volatile storage setup (EEPROM then SD)
 	if (!configManager.Initialize()) dibDriver.dibComm.TX_Error("MCB error initializing EEPROM! Reconfigured");
 	if (!storageManager.StartSD(configManager.boot_count.Read())) dibDriver.dibComm.TX_Error("MCB error starting SD card!");
 
@@ -256,7 +256,8 @@ void MCB::PerformActions(void)
 			}
 			break;
 		case ACT_LIMIT_EXCEEDED:
-			if (curr_state != ST_READY && curr_state != ST_NOMINAL) {
+			// only an error if not in the ready/nominal states, and limits are enabled
+			if (curr_state != ST_READY && curr_state != ST_NOMINAL && configManager.limits_enabled.Read()) {
 				dibDriver.dibComm.TX_Error(limitMonitor.limit_error);
 				action_queue.Push(ACT_SWITCH_READY);
 			}
@@ -307,6 +308,12 @@ void MCB::PerformActions(void)
 			limitMonitor.imon_channels[IMON_MTR1].limit_hi = dibDriver.mcbParameters.curr_limits[0];
 			limitMonitor.imon_channels[IMON_MTR1].limit_lo = dibDriver.mcbParameters.curr_limits[1];
 			dibDriver.dibComm.TX_Ack(MCB_CURR_LIMITS,true);
+			break;
+		case ACT_IGNORE_LIMITS:
+			configManager.limits_enabled.Write(false);
+			break;
+		case ACT_USE_LIMITS:
+			configManager.limits_enabled.Write(true);
 			break;
 		default:
 			storageManager.LogSD("Unknown state manager action", ERR_DATA);
