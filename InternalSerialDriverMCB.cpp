@@ -109,7 +109,7 @@ void InternalSerialDriverMCB::HandleASCII(void)
 		break;
 	case MCB_USE_LIMITS:
 		state_queue->Push(ACT_USE_LIMITS);
-		dibComm.TX_Ack(ACT_USE_LIMITS, true);
+		dibComm.TX_Ack(MCB_USE_LIMITS, true);
 		break;
 	// messages that have parameters to parse -------------
 	case MCB_REEL_OUT:
@@ -194,6 +194,8 @@ void InternalSerialDriverMCB::PrintDebugMenu()
 	PrintDebugCommand(MCB_CONTROLLERS_ON, ";\t(controllers on)");
 	PrintDebugCommand(MCB_CONTROLLERS_OFF, ";\t(controllers off)");
 	PrintDebugCommand(MCB_FULL_RETRACT, ";\t(full retract)");
+	PrintDebugCommand(MCB_IGNORE_LIMITS,";\t(ignore limits)");
+	PrintDebugCommand(MCB_USE_LIMITS,";\t(use limits)");
 	Serial.println("--------------------");
 	PrintDebugCommand(MCB_REEL_OUT, ",num_revs,speed;\t(reel out)");
 	PrintDebugCommand(MCB_REEL_IN, ",num_revs,speed;\t(reel in)");
