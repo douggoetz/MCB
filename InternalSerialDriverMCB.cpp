@@ -8,7 +8,7 @@
 
 #include "InternalSerialDriverMCB.h"
 
-InternalSerialDriverMCB::InternalSerialDriverMCB(Queue * state_q, Queue * monitor_q)
+InternalSerialDriverMCB::InternalSerialDriverMCB(SafeBuffer * state_q, SafeBuffer * monitor_q)
     : dibComm(&DIB_SERIAL)
     , storageManager()
 {
@@ -111,6 +111,9 @@ void InternalSerialDriverMCB::HandleASCII(void)
 		state_queue->Push(ACT_USE_LIMITS);
 		dibComm.TX_Ack(MCB_USE_LIMITS, true);
 		break;
+	case MCB_GET_EEPROM:
+		state_queue->Push(ACT_SEND_EEPROM);
+		break;
 	// messages that have parameters to parse -------------
 	case MCB_REEL_OUT:
 		if (dibComm.RX_Reel_Out(&(mcbParameters.deploy_length), &(mcbParameters.deploy_velocity))) {
@@ -196,6 +199,7 @@ void InternalSerialDriverMCB::PrintDebugMenu()
 	PrintDebugCommand(MCB_FULL_RETRACT, ";\t(full retract)");
 	PrintDebugCommand(MCB_IGNORE_LIMITS,";\t(ignore limits)");
 	PrintDebugCommand(MCB_USE_LIMITS,";\t(use limits)");
+	PrintDebugCommand(MCB_GET_EEPROM, ";\t(get EEPROM contents)");
 	Serial.println("--------------------");
 	PrintDebugCommand(MCB_REEL_OUT, ",num_revs,speed;\t(reel out)");
 	PrintDebugCommand(MCB_REEL_IN, ",num_revs,speed;\t(reel in)");

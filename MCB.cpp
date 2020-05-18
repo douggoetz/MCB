@@ -12,8 +12,8 @@
 // --------------------------------------------------------
 
 MCB::MCB()
-    : action_queue(10)
-	, monitor_queue(10)
+    : action_queue(action_queue_buffer, 16)
+	, monitor_queue(monitor_queue_buffer, 16)
 	, powerController()
     , storageManager()
 	, configManager()
@@ -315,6 +315,9 @@ void MCB::PerformActions(void)
 		case ACT_USE_LIMITS:
 			configManager.limits_enabled.Write(true);
 			break;
+		case ACT_SEND_EEPROM:
+			SendEEPROM();
+			break;
 		default:
 			storageManager.LogSD("Unknown state manager action", ERR_DATA);
 			break;
@@ -553,4 +556,20 @@ void MCB::PrintBootInfo()
 {
   DEBUG_SERIAL.print("MCB Boot ");
   DEBUG_SERIAL.println(configManager.boot_count.Read());
+}
+
+void MCB::SendEEPROM()
+{
+	uint16_t buffer_size = 0;
+
+	buffer_size = configManager.Bufferize(eeprom_buffer, 256);
+
+	if (0 == buffer_size) {
+		DEBUG_SERIAL.println("EEPROM serial buffer too small to hold contents");
+		return;
+	}
+
+	dibDriver.dibComm.AssignBinaryTXBuffer(eeprom_buffer, buffer_size, buffer_size);
+    dibDriver.dibComm.TX_Bin(MCB_EEPROM);
+	DEBUG_SERIAL.println("Sent EEPROM buffer over serial");
 }

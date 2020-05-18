@@ -25,7 +25,7 @@
 #include "MonitorMCB.h"
 #include "ActionsMCB.h"
 #include "Reel.h"
-#include "Queue.h"
+#include "SafeBuffer.h"
 #include <String.h>
 #include <StdInt.h>
 #include <StdLib.h>
@@ -103,9 +103,15 @@ private:
 	void ReelControllerOff(void);
 	void LevelWindControllerOff(void);
 
+	// send EEPROM contents to DIB/PIB as binary message
+	void SendEEPROM(void);
+
 	// Interface objects
-	Queue action_queue;
-	Queue monitor_queue;
+	SafeBuffer action_queue;
+	SafeBuffer monitor_queue;
+
+	uint8_t action_queue_buffer[16] = {0};
+	uint8_t monitor_queue_buffer[16] = {0};
 
 	// Hardware objects
 	PowerControllerMCB powerController;
@@ -137,6 +143,9 @@ private:
 
 	// The current substate
 	uint8_t substate = ENTRY_SUBSTATE;
+
+	// buffer used for sending EEPROM contents as TM
+	uint8_t eeprom_buffer[256];
 
 };
 
