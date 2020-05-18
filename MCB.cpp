@@ -562,10 +562,10 @@ void MCB::SendEEPROM()
 {
 	uint16_t buffer_size = 0;
 
-	buffer_size = configManager.Bufferize(eeprom_buffer, 256);
+	buffer_size = configManager.Bufferize(eeprom_buffer, MAX_MCB_BINARY);
 
 	if (0 == buffer_size) {
-		DEBUG_SERIAL.println("EEPROM serial buffer too small to hold contents");
+		DEBUG_SERIAL.println("EEPROM serial buffer creation error");
 		return;
 	}
 

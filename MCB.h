@@ -145,7 +145,7 @@ private:
 	uint8_t substate = ENTRY_SUBSTATE;
 
 	// buffer used for sending EEPROM contents as TM
-	uint8_t eeprom_buffer[256];
+	uint8_t eeprom_buffer[MAX_MCB_BINARY];
 
 };
 
