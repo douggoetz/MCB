@@ -104,12 +104,12 @@ void InternalSerialDriverMCB::HandleASCII(void)
 		dibComm.TX_Ack(MCB_FULL_RETRACT, true);
 		break;
 	case MCB_IGNORE_LIMITS:
-		state_queue->Push(ACT_IGNORE_LIMITS);
 		dibComm.TX_Ack(MCB_IGNORE_LIMITS, true);
+		state_queue->Push(ACT_IGNORE_LIMITS);
 		break;
 	case MCB_USE_LIMITS:
-		state_queue->Push(ACT_USE_LIMITS);
 		dibComm.TX_Ack(MCB_USE_LIMITS, true);
+		state_queue->Push(ACT_USE_LIMITS);
 		break;
 	case MCB_GET_EEPROM:
 		state_queue->Push(ACT_SEND_EEPROM);

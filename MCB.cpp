@@ -311,9 +311,11 @@ void MCB::PerformActions(void)
 			break;
 		case ACT_IGNORE_LIMITS:
 			configManager.limits_enabled.Write(false);
+			DEBUG_SERIAL.println("Switching to ignore limits");
 			break;
 		case ACT_USE_LIMITS:
 			configManager.limits_enabled.Write(true);
+			DEBUG_SERIAL.println("Switching to use limits");
 			break;
 		case ACT_SEND_EEPROM:
 			SendEEPROM();
