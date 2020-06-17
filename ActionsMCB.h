@@ -46,9 +46,12 @@ enum State_Actions_t : uint8_t {
     ACT_SEND_BRAKE_STATUS,
     ACT_SEND_STATE,
     ACT_SEND_CURRENT,
+    ACT_SEND_EEPROM,
 
     // other
     ACT_LIMIT_EXCEEDED,
+    ACT_IGNORE_LIMITS,
+    ACT_USE_LIMITS,
 
     ACT_NUM_ACTIONS, // not an action, used for counting
     ACT_UNUSED, // not an action, used as default

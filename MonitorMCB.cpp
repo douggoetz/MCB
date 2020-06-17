@@ -8,7 +8,7 @@
 #include "MonitorMCB.h"
 #include "Serialize.h"
 
-MonitorMCB::MonitorMCB(Queue * monitor_q, Queue * action_q, Reel * reel_in, LevelWind * lw_in, InternalSerialDriverMCB * dibdriver)
+MonitorMCB::MonitorMCB(SafeBuffer * monitor_q, SafeBuffer * action_q, Reel * reel_in, LevelWind * lw_in, InternalSerialDriverMCB * dibdriver, ConfigManagerMCB * cfgManager)
     : ltcManager(LTC_TEMP_CS_PIN, LTC_TEMP_RESET_PIN, THERM_SENSE_CH, RTD_SENSE_CH)
     , storageManager()
 {
@@ -20,6 +20,7 @@ MonitorMCB::MonitorMCB(Queue * monitor_q, Queue * action_q, Reel * reel_in, Leve
     reel = reel_in;
     levelWind = lw_in;
     dibDriver = dibdriver;
+    configManager = cfgManager;
 }
 
 void MonitorMCB::InitializeSensors(void)
@@ -35,44 +36,44 @@ void MonitorMCB::InitializeSensors(void)
 void MonitorMCB::UpdateLimits(void)
 {
     // temp sensor limits
-    temp_sensors[MTR1_THERM].limit_hi = storageManager.eeprom_data.mtr1_temp_hi;
-    temp_sensors[MTR1_THERM].limit_lo = storageManager.eeprom_data.mtr1_temp_lo;
-    temp_sensors[MTR2_THERM].limit_hi = storageManager.eeprom_data.mtr2_temp_hi;
-    temp_sensors[MTR2_THERM].limit_lo = storageManager.eeprom_data.mtr2_temp_lo;
-    temp_sensors[MC1_THERM].limit_hi = storageManager.eeprom_data.mc1_temp_hi;
-    temp_sensors[MC1_THERM].limit_lo = storageManager.eeprom_data.mc1_temp_lo;
-    temp_sensors[MC2_THERM].limit_hi = storageManager.eeprom_data.mc2_temp_hi;
-    temp_sensors[MC2_THERM].limit_lo = storageManager.eeprom_data.mc2_temp_lo;
-    temp_sensors[DCDC_THERM].limit_hi = storageManager.eeprom_data.dcdc_temp_hi;
-    temp_sensors[DCDC_THERM].limit_lo = storageManager.eeprom_data.dcdc_temp_lo;
-    temp_sensors[SPARE_THERM].limit_hi = storageManager.eeprom_data.spare_therm_hi;
-    temp_sensors[SPARE_THERM].limit_lo = storageManager.eeprom_data.spare_therm_lo;
+    temp_sensors[MTR1_THERM].limit_hi = configManager->mtr1_temp_lim.Read().hi;
+    temp_sensors[MTR1_THERM].limit_lo = configManager->mtr1_temp_lim.Read().lo;
+    temp_sensors[MTR2_THERM].limit_hi = configManager->mtr2_temp_lim.Read().hi;
+    temp_sensors[MTR2_THERM].limit_lo = configManager->mtr2_temp_lim.Read().lo;
+    temp_sensors[MC1_THERM].limit_hi = configManager->mc1_temp_lim.Read().hi;
+    temp_sensors[MC1_THERM].limit_lo = configManager->mc1_temp_lim.Read().lo;
+    temp_sensors[MC2_THERM].limit_hi = configManager->mc2_temp_lim.Read().hi;
+    temp_sensors[MC2_THERM].limit_lo = configManager->mc2_temp_lim.Read().lo;
+    temp_sensors[DCDC_THERM].limit_hi = configManager->dcdc_temp_lim.Read().hi;
+    temp_sensors[DCDC_THERM].limit_lo = configManager->dcdc_temp_lim.Read().lo;
+    temp_sensors[SPARE_THERM].limit_hi = configManager->spare_therm_lim.Read().hi;
+    temp_sensors[SPARE_THERM].limit_lo = configManager->spare_therm_lim.Read().lo;
 
     // vmon limits
-    vmon_channels[VMON_3V3].limit_hi = storageManager.eeprom_data.vmon_3v3_hi;
-    vmon_channels[VMON_3V3].limit_lo = storageManager.eeprom_data.vmon_3v3_lo;
-    vmon_channels[VMON_15V].limit_hi = storageManager.eeprom_data.vmon_15v_hi;
-    vmon_channels[VMON_15V].limit_lo = storageManager.eeprom_data.vmon_15v_lo;
-    vmon_channels[VMON_20V].limit_hi = storageManager.eeprom_data.vmon_20v_hi;
-    vmon_channels[VMON_20V].limit_lo = storageManager.eeprom_data.vmon_20v_lo;
-    vmon_channels[VMON_SPOOL].limit_hi = storageManager.eeprom_data.vmon_spool_hi;
-    vmon_channels[VMON_SPOOL].limit_lo = storageManager.eeprom_data.vmon_spool_lo;
+    vmon_channels[VMON_3V3].limit_hi = configManager->vmon_3v3_lim.Read().hi;
+    vmon_channels[VMON_3V3].limit_lo = configManager->vmon_3v3_lim.Read().lo;
+    vmon_channels[VMON_15V].limit_hi = configManager->vmon_15v_lim.Read().hi;
+    vmon_channels[VMON_15V].limit_lo = configManager->vmon_15v_lim.Read().lo;
+    vmon_channels[VMON_20V].limit_hi = configManager->vmon_20v_lim.Read().hi;
+    vmon_channels[VMON_20V].limit_lo = configManager->vmon_20v_lim.Read().lo;
+    vmon_channels[VMON_SPOOL].limit_hi = configManager->vmon_spool_lim.Read().hi;
+    vmon_channels[VMON_SPOOL].limit_lo = configManager->vmon_spool_lim.Read().lo;
 
     // imon limits
-    imon_channels[IMON_BRK].limit_hi = storageManager.eeprom_data.imon_brake_hi;
-    imon_channels[IMON_BRK].limit_lo = storageManager.eeprom_data.imon_brake_lo;
-    imon_channels[IMON_MC].limit_hi = storageManager.eeprom_data.imon_mc_hi;
-    imon_channels[IMON_MC].limit_lo = storageManager.eeprom_data.imon_mc_lo;
-    imon_channels[IMON_MTR1].limit_hi = storageManager.eeprom_data.imon_mtr1_hi;
-    imon_channels[IMON_MTR1].limit_lo = storageManager.eeprom_data.imon_mtr1_lo;
-    imon_channels[IMON_MTR2].limit_hi = storageManager.eeprom_data.imon_mtr2_hi;
-    imon_channels[IMON_MTR2].limit_lo = storageManager.eeprom_data.imon_mtr2_lo;
+    imon_channels[IMON_BRK].limit_hi = configManager->imon_brake_lim.Read().hi;
+    imon_channels[IMON_BRK].limit_lo = configManager->imon_brake_lim.Read().lo;
+    imon_channels[IMON_MC].limit_hi = configManager->imon_mc_lim.Read().hi;
+    imon_channels[IMON_MC].limit_lo = configManager->imon_mc_lim.Read().lo;
+    imon_channels[IMON_MTR1].limit_hi = configManager->imon_mtr1_lim.Read().hi;
+    imon_channels[IMON_MTR1].limit_lo = configManager->imon_mtr1_lim.Read().lo;
+    imon_channels[IMON_MTR2].limit_hi = configManager->imon_mtr2_lim.Read().hi;
+    imon_channels[IMON_MTR2].limit_lo = configManager->imon_mtr2_lim.Read().lo;
 
     // torque limits
-    motor_torques[REEL_INDEX].limit_hi = storageManager.eeprom_data.reel_torque_hi;
-    motor_torques[REEL_INDEX].limit_lo = storageManager.eeprom_data.reel_torque_lo;
-    motor_torques[LEVEL_WIND_INDEX].limit_hi = storageManager.eeprom_data.lw_torque_hi;
-    motor_torques[LEVEL_WIND_INDEX].limit_lo = storageManager.eeprom_data.lw_torque_lo;
+    motor_torques[REEL_INDEX].limit_hi = configManager->reel_torque_lim.Read().hi;
+    motor_torques[REEL_INDEX].limit_lo = configManager->reel_torque_lim.Read().lo;
+    motor_torques[LEVEL_WIND_INDEX].limit_hi = configManager->lw_torque_lim.Read().hi;
+    motor_torques[LEVEL_WIND_INDEX].limit_lo = configManager->lw_torque_lim.Read().lo;
 }
 
 void MonitorMCB::Monitor(void)

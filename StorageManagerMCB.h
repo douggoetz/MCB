@@ -1,6 +1,6 @@
 /*
  *  StorageManagerMCB.h
- *  File defining the class that manages SD and EEPROM storage
+ *  File defining the class that manages SD storage
  *  Author: Alex St. Clair
  *  March 2018
  *
@@ -14,7 +14,6 @@
 #include "HardwareMCB.h"
 #include "SD.h"
 #include "WProgram.h"
-#include <EEPROM.h>
 #include <StdInt.h>
 #include <StdLib.h>
 
@@ -54,7 +53,7 @@ public:
 	bool LogSD(String log_data, Log_Data_Type_t data_type); // string should not end with newline char
 
 	// Basic SD methods
-	bool StartSD(void); // must be called before use of file I/O (but after UpdateFromEEPROM())
+	bool StartSD(uint32_t boot_num); // must be called before use of file I/O (but after configManager.Initialize())
 	bool CheckSD(void);
 	bool ConfigureDirectories(void);
 	bool RemoveFile(const char * filename);
@@ -68,28 +67,6 @@ public:
 	bool ReadSD_int32(const char * filename, int32_t * result, uint16_t position=0);
 	bool ReadSD_uint32(const char * filename, uint32_t * result, uint16_t position=0);
 
-	// Load entire EEPROM struct from physical EEPROM
-	bool LoadFromEEPROM(void); // must be called once on boot (before StartSD())
-
-	// In the case of an invalid EEPROM version number or EEPROM error, reset with defaults
-	void ReconfigureEEPROM(void);
-
-	// Update an individual struct value in EEPROM
-	// Note: use the following macros instead of calling these functions!
-	bool Update_uint8(uint16_t offset, uint8_t data);
-	bool Update_uint16(uint16_t offset, uint16_t data);
-	bool Update_uint32(uint16_t offset, uint32_t data);
-	bool Update_float(uint16_t offset, float data);
-
-	// macros for safe updating of EEPROM. Usage: EEPROM_UPDATE_TYPE(storageManager,field_name,new_value);
-	#define EEPROM_UPDATE_UINT8(object,name,data)	((object).Update_uint8(offsetof(EEPROM_Data_t,name),data))
-	#define EEPROM_UPDATE_UINT16(object,name,data)	((object).Update_uint16(offsetof(EEPROM_Data_t,name),data))
-	#define EEPROM_UPDATE_UINT32(object,name,data)	((object).Update_uint32(offsetof(EEPROM_Data_t,name),data))
-	#define EEPROM_UPDATE_FLOAT(object,name,data)	((object).Update_float(offsetof(EEPROM_Data_t,name),data))
-
-	// struct representation of EEPROM data
-	static EEPROM_Data_t eeprom_data;
-
 	// base directory for data from this boot
 	static String base_directory;
 
@@ -98,6 +75,7 @@ public:
 
 private:
 	static bool sd_state;
+	static uint32_t boot_number;
 	File file; // static exception: each instance has a file so it isn't constantly declaring one
 };
 

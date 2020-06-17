@@ -10,11 +10,12 @@
 
 #include "InternalSerialDriverMCB.h"
 #include "StorageManagerMCB.h"
+#include "ConfigManagerMCB.h"
 #include "LTC2983Manager.h"
 #include "ActionsMCB.h"
 #include "LevelWind.h"
 #include "Reel.h"
-#include "Queue.h"
+#include "SafeBuffer.h"
 #include <stdint.h>
 
 #define TEMP_LOG_PERIOD     30000  // milliseconds
@@ -88,7 +89,7 @@ struct Fast_TM_t {
 
 class MonitorMCB {
 public:
-    MonitorMCB(Queue * monitor_q, Queue * action_q, Reel * reel_in, LevelWind * lw_in, InternalSerialDriverMCB * dibdriver);
+    MonitorMCB(SafeBuffer * monitor_q, SafeBuffer * action_q, Reel * reel_in, LevelWind * lw_in, InternalSerialDriverMCB * dibdriver, ConfigManagerMCB * cfgManager);
     ~MonitorMCB(void) { };
 
     // interface methods
@@ -166,8 +167,8 @@ private:
     bool monitor_low_power;
 
     // communication with state manager
-    Queue * monitor_queue;
-    Queue * action_queue;
+    SafeBuffer * monitor_queue;
+    SafeBuffer * action_queue;
 
     // hardware objects
 	LTC2983Manager ltcManager;
@@ -175,6 +176,7 @@ private:
     LevelWind * levelWind;
     Reel * reel;
     InternalSerialDriverMCB * dibDriver;
+    ConfigManagerMCB * configManager;
 
     // motion data buffer for sending to the DIB/PIB
     uint8_t tm_buffer[MOTION_TM_SIZE];

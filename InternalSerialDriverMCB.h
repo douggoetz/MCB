@@ -13,7 +13,7 @@
 #include "ActionsMCB.h"
 #include "HardwareMCB.h"
 #include "MCBComm.h"
-#include "Queue.h"
+#include "SafeBuffer.h"
 #include <StdInt.h>
 
 struct MCBParameters_t {
@@ -39,7 +39,7 @@ struct MCBParameters_t {
 
 class InternalSerialDriverMCB {
 public:
-	InternalSerialDriverMCB(Queue * state_q, Queue * monitor_q);
+	InternalSerialDriverMCB(SafeBuffer * state_q, SafeBuffer * monitor_q);
 	~InternalSerialDriverMCB(void) { };
 
 	void RunDriver(void);
@@ -57,8 +57,8 @@ private:
 	void PrintDebugCommand(uint8_t cmd, const char * description);
 
 	// Interface objects
-	Queue * state_queue;
-	Queue * monitor_queue;
+	SafeBuffer * state_queue;
+	SafeBuffer * monitor_queue;
 
 	StorageManagerMCB storageManager;
 };
