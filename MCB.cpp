@@ -46,6 +46,13 @@ void MCB::Startup()
 	// Display startup info
 	PrintBootInfo();
 
+#ifdef INST_FLOATS
+	DEBUG_SERIAL.println("Instrument: FLOATS");
+#endif
+#ifdef INST_RACHUTS
+	DEBUG_SERIAL.println("Instrument: RACHuTS");
+#endif
+
 	// TTL/RS-232 transceiver setup
 	pinMode(FORCEON_PIN, OUTPUT);
 	pinMode(FORCEOFF_PIN, OUTPUT);

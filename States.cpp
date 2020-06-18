@@ -127,7 +127,7 @@ void MCB::ReelOut()
 		}
 
 		if (!reel.ReelOut(dibDriver.mcbParameters.deploy_length, dibDriver.mcbParameters.deploy_velocity, configManager.deploy_acceleration.Read())) {
-			dibDriver.dibComm.TX_Error("Error comanding reel out");
+			dibDriver.dibComm.TX_Error("Error commanding reel out");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 		}
 
@@ -285,7 +285,12 @@ void MCB::ReelIn()
 
 	case REEL_IN_MONITOR:
 		// will exit once motion complete or fault
+#ifdef INST_RACHUTS
+		CheckLevelWind();
+#endif
+#ifdef INST_FLOATS
 		CheckLevelWindCam();
+#endif
 		CheckReel();
 
 		if (millis() - last_pos_print > 5000) {
