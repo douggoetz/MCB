@@ -35,13 +35,11 @@ bool LevelWind::UpdatePosition() {
 }
 
 bool LevelWind::WindOut(float reel_speed) {
-	Serial.println("Wind Out");
 	if (!SetSlewRate(reel_speed*LW_SPEED_CONV)) { return false; }
 	return CallFunction(WIND_OUT_LW);
 }
 
 bool LevelWind::WindIn(float reel_speed) {
-	Serial.println("Wind In");
 	if (!SetSlewRate(reel_speed*LW_SPEED_CONV)) { return false; }
 	return CallFunction(WIND_IN_LW);
 }

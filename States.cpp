@@ -213,6 +213,8 @@ void MCB::ReelIn()
 		break;
 
 	case REEL_IN_START_CAM:
+		homed = false;
+
 		if (!levelWind.WindOut(dibDriver.mcbParameters.retract_velocity)) { // will home
 			reel.StopProfile();
 			dibDriver.dibComm.TX_Error("Error starting camming");
@@ -245,10 +247,17 @@ void MCB::ReelIn()
 			delay(50);
 			reel.UpdatePosition();
 
-			// stop home then cam
+			// stop home then cam in case of error
 			levelWind.StopProfile();
 			delay(50);
 			levelWind.StopProfile();
+
+			// power off if the home didn't complete
+			levelWind.UpdateDriveStatus();
+			if (!levelWind.drive_status.lsp_event) {
+				LevelWindControllerOff();
+				ReelControllerOff();
+			}
 		} else {
 			ReelControllerOff();
 			LevelWindControllerOff();
