@@ -415,13 +415,13 @@ void MCB::CheckLevelWindCam(void)
 		Serial.println("Motion fault (lw)");
 		LogFault();
 	} else if (!lw_direction_out && levelWind.drive_status.motion_complete) {
-		if (!levelWind.WindOut()) {
+		if (!levelWind.WindOut(dibDriver.mcbParameters.retract_velocity)) {
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			Serial.println("Unable to command next lw segment");
 		}
 		lw_direction_out ^= true; // flip direction tracker
 	} else if (lw_direction_out && levelWind.drive_status.lsp_event && levelWind.drive_status.motion_complete) {
-		if (!levelWind.WindIn()) {
+		if (!levelWind.WindIn(dibDriver.mcbParameters.retract_velocity)) {
 			action_queue.Push(ACT_SWITCH_NOMINAL);
 			Serial.println("Unable to command next lw segment");
 		}

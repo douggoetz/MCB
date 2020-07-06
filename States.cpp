@@ -213,7 +213,7 @@ void MCB::ReelIn()
 		break;
 
 	case REEL_IN_START_CAM:
-		if (!levelWind.WindOut()) { // will home
+		if (!levelWind.WindOut(dibDriver.mcbParameters.retract_velocity)) { // will home
 			reel.StopProfile();
 			dibDriver.dibComm.TX_Error("Error starting camming");
 			action_queue.Push(ACT_SWITCH_NOMINAL);

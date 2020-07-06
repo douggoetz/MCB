@@ -25,12 +25,19 @@
 
 #define LW_HOME_MILLIS		30000
 
+// SET THIS MACRO TO CHANGE THE CAM RATIO
+#define LW_MM_PER_ROT		1 // mm of LW linear motion per reel rotation
+
+#define LW_MM_PER_SEC		9.8304 // mechanical constant, converts 1 mm/s to internal units
+#define RPM_PER_SEC			(1.0/60.0) // rpm to rps
+#define LW_SPEED_CONV		(LW_MM_PER_ROT*LW_MM_PER_SEC*RPM_PER_SEC) // multiply by reel speed to get LW speed
+
 #ifdef INST_RACHUTS // defined in HardwareMCB.h
-#define STOP_PROFILE_LW		0x4022
-#define WIND_OUT_LW			0x4025
-#define WIND_IN_LW			0x4050
-#define SET_CENTER_LW		0x4067
-#define HOME_LW				0x407E
+#define STOP_PROFILE_LW		0x4025
+#define WIND_OUT_LW			0x4028
+#define WIND_IN_LW			0x404C
+#define SET_CENTER_LW		0x4060
+#define HOME_LW				0x4077
 #endif
 #ifdef INST_FLOATS // defined in HardwareMCB.h
 #define STOP_PROFILE_LW		0x401F
@@ -47,8 +54,8 @@ public:
 	bool SetCenter();
 	bool Home();
 	bool UpdatePosition();
-	bool WindOut();
-	bool WindIn();
+	bool WindOut(float reel_speed);
+	bool WindIn(float reel_speed);
 
 	float absolute_position; // in mm, relative to home
 
