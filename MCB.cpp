@@ -556,6 +556,10 @@ bool MCB::LevelWindControllerOn(void)
 		return false;
 	}
 
+	// critical workaround - the variable speed is ignored for the first LW motion after powering on
+	levelWind.WindIn(1);
+	levelWind.StopProfile();
+
 	levelwind_initialized = true;
 	return true;
 }

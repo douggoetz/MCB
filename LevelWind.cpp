@@ -36,10 +36,12 @@ bool LevelWind::UpdatePosition() {
 
 bool LevelWind::WindOut(float reel_speed) {
 	if (!SetSlewRate(reel_speed*LW_SPEED_CONV)) { return false; }
+	delay(50);
 	return CallFunction(WIND_OUT_LW);
 }
 
 bool LevelWind::WindIn(float reel_speed) {
 	if (!SetSlewRate(reel_speed*LW_SPEED_CONV)) { return false; }
+	delay(50);
 	return CallFunction(WIND_IN_LW);
 }
