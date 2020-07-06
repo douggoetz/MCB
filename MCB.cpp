@@ -340,9 +340,17 @@ void MCB::PerformActions(void)
 
 void MCB::CheckReel(void)
 {
+	static uint8_t status_counter = 0;
+
 	if (!reel.UpdateDriveStatus()) {
 		storageManager.LogSD("Error updating reel drive status", ERR_DATA);
+		if (++status_counter == 10) {
+			dibDriver.dibComm.TX_Error("Failed to update reel drive status 10 times");
+			status_counter = 0;
+		}
 		return;
+	} else {
+		status_counter = 0;
 	}
 
 	if (reel.drive_status.fault) {
@@ -350,9 +358,7 @@ void MCB::CheckReel(void)
 		action_queue.Push(ACT_SWITCH_NOMINAL);
 		LogFault();
 	} else if (reel.drive_status.motion_complete) {
-#ifdef INST_FLOATS
 		levelWind.StopProfile();
-#endif
 		Serial.println("Reel motion complete");
 		action_queue.Push(ACT_SWITCH_READY);
 		dibDriver.dibComm.TX_ASCII(MCB_MOTION_FINISHED);
@@ -364,9 +370,17 @@ void MCB::CheckReel(void)
 // returns true if and only if motion complete
 bool MCB::CheckLevelWind(void)
 {
+	static uint8_t status_counter = 0;
+
 	if (!levelWind.UpdateDriveStatus()) {
 		storageManager.LogSD("Error updating level wind drive status", ERR_DATA);
+		if (++status_counter == 10) {
+			dibDriver.dibComm.TX_Error("Failed to update level wind drive status 10 times");
+			status_counter = 0;
+		}
 		return false;
+	} else {
+		status_counter = 0;
 	}
 
 	if (levelWind.drive_status.fault) {
@@ -380,12 +394,18 @@ bool MCB::CheckLevelWind(void)
 	return false;
 }
 
-#ifdef INST_FLOATS
-bool MCB::CheckLevelWindCam(void)
+void MCB::CheckLevelWindCam(void)
 {
+	static uint8_t status_counter = 0;
+
 	if (!levelWind.UpdateDriveStatus()) {
 		storageManager.LogSD("Error updating level wind drive status", ERR_DATA);
-		return false;
+		if (++status_counter == 10) {
+			dibDriver.dibComm.TX_Error("Failed to update level wind drive status 10 times");
+			status_counter = 0;
+		}
+	} else {
+		status_counter = 0;
 	}
 
 	if (levelWind.drive_status.lsp_event) homed = true;
@@ -407,11 +427,7 @@ bool MCB::CheckLevelWindCam(void)
 		}
 		lw_direction_out ^= true; // flip direction tracker
 	}
-
-	return false; // this should never return true for FLOATS
 }
-#endif
-
 
 void MCB::LogFault(void)
 {

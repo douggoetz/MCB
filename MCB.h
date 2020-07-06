@@ -91,11 +91,8 @@ private:
 	void PrintBootInfo(void);
 	void CheckReel(void);
 	bool CheckLevelWind(void); // returns true iff motion complete
+	void CheckLevelWindCam(void);
 	void LogFault(void);
-
-#ifdef INST_FLOATS
-	bool CheckLevelWindCam(void);
-#endif
 
 	// Reel and level wind power control
 	bool ReelControllerOn(void);

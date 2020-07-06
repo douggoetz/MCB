@@ -73,10 +73,6 @@ bool Reel::StopProfile() {
 	return CallFunction(STOP_PROFILE_R);
 }
 
-// bool Reel::ReelIn() {
-// 	return CallFunction(REEL_IN_R);
-// }
-
 bool Reel::ReelIn(float num_revolutions, float speed, float acc) {
 	uint32_t num_units = 0;
 	uint32_t fixed_speed = 0;
@@ -103,10 +99,6 @@ bool Reel::ReelIn(float num_revolutions, float speed, float acc) {
 
 	return CallFunction(REEL_VARIABLE_R);
 }
-
-// bool Reel::ReelOut() {
-// 	return CallFunction(REEL_OUT_R);
-// }
 
 bool Reel::ReelOut(float num_revolutions, float speed, float acc) {
 	uint32_t num_units = 0;

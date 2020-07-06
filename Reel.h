@@ -83,9 +83,7 @@ public:
 	bool UpdateSpeed();
 	void SetToStoredPosition();
 	bool StopProfile();
-	//bool ReelIn();
 	bool ReelIn(float num_revolutions, float speed, float acc=DEFAULT_ACC);
-	//bool ReelOut();
 	bool ReelOut(float num_revolutions, float speed, float acc=DEFAULT_ACC);
 	bool CamSetup();
 	bool CamStop();

@@ -34,13 +34,6 @@ bool LevelWind::UpdatePosition() {
 	return false;
 }
 
-#ifdef INST_RACHUTS
-bool LevelWind::StartCamming() {
-	return CallFunction(START_CAMMING_LW);
-}
-#endif
-
-#ifdef INST_FLOATS
 bool LevelWind::WindOut() {
 	return CallFunction(WIND_OUT_LW);
 }
@@ -48,4 +41,3 @@ bool LevelWind::WindOut() {
 bool LevelWind::WindIn() {
 	return CallFunction(WIND_IN_LW);
 }
-#endif
