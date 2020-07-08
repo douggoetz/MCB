@@ -29,7 +29,6 @@ enum MCBSubstates_t : uint8_t{
 	// Reel in
 	REEL_IN_LW_ON,
 	REEL_IN_START_MOTION,
-	REEL_IN_HOME,
 	REEL_IN_START_CAM,
 	REEL_IN_MONITOR,
 
@@ -168,11 +167,6 @@ void MCB::ReelOut()
 
 void MCB::ReelIn()
 {
-#ifdef INST_RACHUTS
-	// used for inter-loop timing
-	static uint32_t timing_variable = 0;
-#endif
-
 	switch (substate) {
 	case STATE_ENTRY:
 		Serial.println("Entering reel in");
@@ -214,62 +208,14 @@ void MCB::ReelIn()
 		Serial.print("Reeling in: ");
 		Serial.println(dibDriver.mcbParameters.retract_length);
 
-#ifdef INST_RACHUTS
-		if (!homed) {
-			if (!levelWind.Home()) {
-				dibDriver.dibComm.TX_Error("Error commanding lw home");
-				action_queue.Push(ACT_SWITCH_NOMINAL);
-			} else {
-				lw_docked = false;
-				timing_variable = millis() + LW_HOME_MILLIS;
-				substate = REEL_IN_HOME;
-			}
-		} else {
-			substate = REEL_IN_START_CAM;
-		}
-#endif
-
-#ifdef INST_FLOATS
 		substate = REEL_IN_START_CAM; // will home every wind in
-#endif
 
 		break;
-
-	case REEL_IN_HOME:
-#ifdef INST_RACHUTS
-		// check if the reel finished early
-		CheckReel();
-
-		// make sure motion is complete and the limit switch has been hit before moving one
-		// if thirty seconds passes, move on anyway
-		if (levelWind.UpdateDriveStatus()) {
-			if (!(levelWind.drive_status.lsp_event && levelWind.drive_status.motion_complete)) {
-				if (millis() < timing_variable) return;
-			}
-		} else if (millis() < timing_variable) {
-			return;
-		}
-
-		homed = true;
-
-		if (!camming) {
-			substate = REEL_IN_START_CAM;
-		} else {
-			substate = REEL_IN_MONITOR;
-		}
-#endif
-
-		break;
-
-
 
 	case REEL_IN_START_CAM:
-#ifdef INST_RACHUTS
-		if (!reel.CamSetup() || !levelWind.StartCamming()) {
-#endif
-#ifdef INST_FLOATS
-		if (!levelWind.WindOut()) { // will home
-#endif
+		homed = false;
+
+		if (!levelWind.WindOut(dibDriver.mcbParameters.retract_velocity)) { // will home
 			reel.StopProfile();
 			dibDriver.dibComm.TX_Error("Error starting camming");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
@@ -284,13 +230,8 @@ void MCB::ReelIn()
 		break;
 
 	case REEL_IN_MONITOR:
-		// will exit once motion complete or fault
-#ifdef INST_RACHUTS
-		CheckLevelWind();
-#endif
-#ifdef INST_FLOATS
+		// these functions will force an exit once motion completes or faults
 		CheckLevelWindCam();
-#endif
 		CheckReel();
 
 		if (millis() - last_pos_print > 5000) {
@@ -302,13 +243,21 @@ void MCB::ReelIn()
 
 	case STATE_EXIT:
 		if (reel.StopProfile()) {
-			delay(50); // wait a bit for motion to settle if ongoing
+			// wait a bit for motion to settle if ongoing, then get a final position value
+			delay(50);
 			reel.UpdatePosition();
-#ifdef INST_FLOATS
+
+			// stop home then cam in case of error
 			levelWind.StopProfile();
 			delay(50);
-			levelWind.StopProfile(); // stop home then cam
-#endif
+			levelWind.StopProfile();
+
+			// power off if the home didn't complete
+			levelWind.UpdateDriveStatus();
+			if (!levelWind.drive_status.lsp_event) {
+				LevelWindControllerOff();
+				ReelControllerOff();
+			}
 		} else {
 			ReelControllerOff();
 			LevelWindControllerOff();
