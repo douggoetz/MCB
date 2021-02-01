@@ -9,8 +9,15 @@
 #include "Serialize.h"
 
 MonitorMCB::MonitorMCB(SafeBuffer * monitor_q, SafeBuffer * action_q, Reel * reel_in, LevelWind * lw_in, InternalSerialDriverMCB * dibdriver, ConfigManagerMCB * cfgManager)
-    : ltcManager(LTC_TEMP_CS_PIN, LTC_TEMP_RESET_PIN, THERM_SENSE_CH, RTD_SENSE_CH)
-    , storageManager()
+    : storageManager()
+    , tempC_MTR1(MTR1_THERM_CH)
+    , tempC_MTR2(MTR2_THERM_CH)
+    , tempC_MC1(MC1_THERM_CH)
+    , tempC_SPARE1(SPARE1_THERM_CH)
+    , tempC_SPARE2(SPARE2_THERM_CH)
+    
+    //: ltcManager(LTC_TEMP_CS_PIN, LTC_TEMP_RESET_PIN, THERM_SENSE_CH, RTD_SENSE_CH)
+    //, storageManager()
 {
     monitor_low_power = false;
     monitor_reel = false;
@@ -25,12 +32,39 @@ MonitorMCB::MonitorMCB(SafeBuffer * monitor_q, SafeBuffer * action_q, Reel * ree
 
 void MonitorMCB::InitializeSensors(void)
 {
-	analogReadRes(12);
-	for (int i = 0; i < NUM_TEMP_SENSORS; i++) {
-        ltcManager.channel_assignments[temp_sensors[i].channel_number] = temp_sensors[i].sensor_type;
-        temp_sensors[i].sensor_error = true; // true until proven otherwise (affects TM averaging)
+	//analogReadRes(12);
+	//for (int i = 0; i < NUM_TEMP_SENSORS; i++) {
+    //    ltcManager.channel_assignments[temp_sensors[i].channel_number] = temp_sensors[i].sensor_type;
+   //     temp_sensors[i].sensor_error = true; // true until proven otherwise (affects TM averaging)
+    //}
+	//ltcManager.InitializeAndConfigure();
+
+    if(!tempC_MC1.ValidateAddrCRC()){ //use to check that a valid sensor address is being retreived. 
+        DEBUG_SERIAL.println("sensor crc bad, check sensor connection");
     }
-	ltcManager.InitializeAndConfigure();
+
+    if(!tempC_MTR1.ValidateAddrCRC()){ //use to check that a valid sensor address is being retreived. 
+        DEBUG_SERIAL.println("sensor crc bad, check sensor connection");
+    }
+
+    if(!tempC_MTR2.ValidateAddrCRC()){ //use to check that a valid sensor address is being retreived. 
+        DEBUG_SERIAL.println("sensor crc bad, check sensor connection");
+    }
+
+    if(!tempC_SPARE1.ValidateAddrCRC()){ //use to check that a valid sensor address is being retreived. 
+        DEBUG_SERIAL.println("sensor crc bad, check sensor connection");
+    }
+
+    if(!tempC_SPARE2.ValidateAddrCRC()){ //use to check that a valid sensor address is being retreived. 
+        DEBUG_SERIAL.println("sensor crc bad, check sensor connection");
+    }
+
+    tempC_MTR1.ManageState(T_MTR1);
+    tempC_MTR2.ManageState(T_MTR2);
+    tempC_MC1.ManageState(T_MC1);
+    tempC_SPARE1.ManageState(T_SP1);
+    tempC_SPARE2.ManageState(T_SP2); 
+
 }
 
 void MonitorMCB::UpdateLimits(void)
@@ -42,12 +76,12 @@ void MonitorMCB::UpdateLimits(void)
     temp_sensors[MTR2_THERM].limit_lo = configManager->mtr2_temp_lim.Read().lo;
     temp_sensors[MC1_THERM].limit_hi = configManager->mc1_temp_lim.Read().hi;
     temp_sensors[MC1_THERM].limit_lo = configManager->mc1_temp_lim.Read().lo;
-    temp_sensors[MC2_THERM].limit_hi = configManager->mc2_temp_lim.Read().hi;
-    temp_sensors[MC2_THERM].limit_lo = configManager->mc2_temp_lim.Read().lo;
-    temp_sensors[DCDC_THERM].limit_hi = configManager->dcdc_temp_lim.Read().hi;
-    temp_sensors[DCDC_THERM].limit_lo = configManager->dcdc_temp_lim.Read().lo;
-    temp_sensors[SPARE_THERM].limit_hi = configManager->spare_therm_lim.Read().hi;
-    temp_sensors[SPARE_THERM].limit_lo = configManager->spare_therm_lim.Read().lo;
+    temp_sensors[SPARE1_THERM].limit_hi = configManager->mc2_temp_lim.Read().hi;
+    temp_sensors[SPARE1_THERM].limit_lo = configManager->mc2_temp_lim.Read().lo;
+    temp_sensors[SPARE2_THERM].limit_hi = configManager->dcdc_temp_lim.Read().hi;
+    temp_sensors[SPARE2_THERM].limit_lo = configManager->dcdc_temp_lim.Read().lo;
+    //temp_sensors[SPARE_THERM].limit_hi = configManager->spare_therm_lim.Read().hi;
+    //temp_sensors[SPARE_THERM].limit_lo = configManager->spare_therm_lim.Read().lo;
 
     // vmon limits
     vmon_channels[VMON_3V3].limit_hi = configManager->vmon_3v3_lim.Read().hi;
@@ -68,6 +102,8 @@ void MonitorMCB::UpdateLimits(void)
     imon_channels[IMON_MTR1].limit_lo = configManager->imon_mtr1_lim.Read().lo;
     imon_channels[IMON_MTR2].limit_hi = configManager->imon_mtr2_lim.Read().hi;
     imon_channels[IMON_MTR2].limit_lo = configManager->imon_mtr2_lim.Read().lo;
+    //imon_channels[IMON_INST].limit_hi = configManager->imon_inst_lim.Read().hi;
+    //imon_channels[IMON_INST].limit_lo = configManager->imon_inst_lim.Read().lo;
 
     // torque limits
     motor_torques[REEL_INDEX].limit_hi = configManager->reel_torque_lim.Read().hi;
@@ -99,6 +135,13 @@ void MonitorMCB::Monitor(void)
     if (!limits_ok) {
         action_queue->Push(ACT_LIMIT_EXCEEDED); // notify state manager
     }
+
+    tempC_MTR1.ManageState(T_MTR1);
+    tempC_MTR2.ManageState(T_MTR2);
+    tempC_MC1.ManageState(T_MC1);
+    tempC_SPARE1.ManageState(T_SP1);
+    tempC_SPARE2.ManageState(T_SP2); 
+
 }
 
 void MonitorMCB::HandleCommands(void)
@@ -115,7 +158,7 @@ void MonitorMCB::HandleCommands(void)
             monitor_reel = true;
             monitor_levelwind = true;
             if (monitor_low_power) {
-                ltcManager.WakeUp();
+                //ltcManager.WakeUp();
                 monitor_low_power = false;
             }
             break;
@@ -123,7 +166,7 @@ void MonitorMCB::HandleCommands(void)
             monitor_reel = true;
             monitor_levelwind = false;
             if (monitor_low_power) {
-                ltcManager.WakeUp();
+                //ltcManager.WakeUp();
                 monitor_low_power = false;
             }
             break;
@@ -131,36 +174,47 @@ void MonitorMCB::HandleCommands(void)
             monitor_reel = false;
             monitor_levelwind = false;
             if (monitor_low_power) {
-                ltcManager.WakeUp();
+                //ltcManager.WakeUp();
                 monitor_low_power = false;
             }
             break;
         case MONITOR_LOW_POWER:
-            ltcManager.Sleep();
+            //ltcManager.Sleep();
             monitor_low_power = true;
             monitor_reel = false;
             monitor_levelwind = false;
             break;
         case MONITOR_SEND_TEMPS:
-            if (monitor_low_power) {
-                dibDriver->dibComm.TX_Temperatures(LTC_POWERED_OFF, LTC_POWERED_OFF, LTC_POWERED_OFF, LTC_POWERED_OFF, LTC_POWERED_OFF, LTC_POWERED_OFF);
-            } else {
-                dibDriver->dibComm.TX_Temperatures(temp_sensors[0].last_temperature, temp_sensors[1].last_temperature, temp_sensors[2].last_temperature,
-                                                   temp_sensors[3].last_temperature, temp_sensors[4].last_temperature, temp_sensors[5].last_temperature);
-            }
+            //if (monitor_low_power) {
+              //  dibDriver->dibComm.TX_Temperatures(LTC_POWERED_OFF, LTC_POWERED_OFF, LTC_POWERED_OFF, LTC_POWERED_OFF, LTC_POWERED_OFF, LTC_POWERED_OFF);
+            //} else {
+            dibDriver->dibComm.TX_Temperatures(temp_sensors[0].last_temperature, temp_sensors[1].last_temperature, temp_sensors[2].last_temperature,
+                                                   temp_sensors[3].last_temperature, temp_sensors[4].last_temperature);
+            //}
             Serial.print("Temps: ");
             Serial.print(temp_sensors[0].last_temperature); Serial.print(",");
             Serial.print(temp_sensors[1].last_temperature); Serial.print(",");
             Serial.print(temp_sensors[2].last_temperature); Serial.print(",");
             Serial.print(temp_sensors[3].last_temperature); Serial.print(",");
-            Serial.print(temp_sensors[4].last_temperature); Serial.print(",");
-            Serial.println(temp_sensors[5].last_temperature);
+            Serial.println(temp_sensors[4].last_temperature);
             break;
         case MONITOR_SEND_VOLTS:
             dibDriver->dibComm.TX_Voltages(vmon_channels[0].last_voltage, vmon_channels[1].last_voltage, vmon_channels[2].last_voltage, vmon_channels[3].last_voltage);
+            Serial.print("Voltages: ");
+            Serial.print(vmon_channels[0].last_voltage); Serial.print(",");
+            Serial.print(vmon_channels[1].last_voltage); Serial.print(",");
+            Serial.print(vmon_channels[2].last_voltage); Serial.print(",");
+            Serial.println(vmon_channels[3].last_voltage);
             break;
+            
         case MONITOR_SEND_CURRS:
-            dibDriver->dibComm.TX_Currents(imon_channels[0].last_current, imon_channels[1].last_current, imon_channels[2].last_current, imon_channels[3].last_current);
+            dibDriver->dibComm.TX_Currents(imon_channels[0].last_current, imon_channels[1].last_current, imon_channels[2].last_current, imon_channels[3].last_current, imon_channels[4].last_current);
+            Serial.print("Currents: ");
+            Serial.print(imon_channels[0].last_current); Serial.print(",");
+            Serial.print(imon_channels[1].last_current); Serial.print(",");
+            Serial.print(imon_channels[2].last_current); Serial.print(",");
+            Serial.print(imon_channels[3].last_current); Serial.print(",");
+            Serial.println(imon_channels[4].last_current);
             break;
         case UNUSED_COMMAND:
         default:
@@ -180,24 +234,46 @@ bool MonitorMCB::CheckTemperatures(void)
 {
     static String temperature_string = "";
     static uint8_t curr_sensor = 0;
-    static bool measurement_ongoing = false;
+    //static bool measurement_ongoing = false;
     static uint32_t last_temp_log = 0;
     bool limits_ok = true;
     float temp = 0.0f;
 
-    if (!measurement_ongoing) {
-        ltcManager.StartMeasurement(temp_sensors[curr_sensor].channel_number);
-        measurement_ongoing = true;
-    } else if (ltcManager.FinishedMeasurement()) {
-        measurement_ongoing = false;
-        temp = ltcManager.ReadMeasurementResult(temp_sensors[curr_sensor].channel_number);
+    //if (!measurement_ongoing) {
+    //    ltcManager.StartMeasurement(temp_sensors[curr_sensor].channel_number);
+    //    measurement_ongoing = true;
+    //} else if (ltcManager.FinishedMeasurement()) {
+      //  measurement_ongoing = false;
+    // temp = ltcManager.ReadMeasurementResult(temp_sensors[curr_sensor].channel_number);
 
-        // validate reading, check limits if valid
-        if (temp != TEMPERATURE_ERROR && temp != LTC_SENSOR_ERROR) {
-            temp_sensors[curr_sensor].last_temperature = temp;
-            temp_sensors[curr_sensor].sensor_error = false;
+     for(curr_sensor = 0; curr_sensor < NUM_TEMP_SENSORS; curr_sensor++){
 
-            if (temp > temp_sensors[curr_sensor].limit_hi) {
+        switch (curr_sensor)
+        {
+            case MTR1_THERM:
+                temp = T_MTR1;
+                break;
+            case MTR2_THERM:
+                temp = T_MTR2;
+                break;
+            case MC1_THERM:
+                temp = T_MC1;
+                break;
+            case SPARE1_THERM:
+                temp = T_SP1;
+                break;
+            case SPARE2_THERM:
+                temp = T_SP2;
+                break;
+            default:
+                temp = -999;
+                break;
+        }
+
+        temp_sensors[curr_sensor].last_temperature = temp;
+        temp_sensors[curr_sensor].sensor_error = false;
+
+        if (temp > temp_sensors[curr_sensor].limit_hi) {
                 if (!temp_sensors[curr_sensor].over_temp) { // if newly over
                     storageManager.LogSD("Over temperature", ERR_DATA);
                     temp_sensors[curr_sensor].over_temp = true;
@@ -217,28 +293,67 @@ bool MonitorMCB::CheckTemperatures(void)
                 temp_sensors[curr_sensor].over_temp = false;
                 temp_sensors[curr_sensor].under_temp = false;
             }
-        } else {
-            temp_sensors[curr_sensor].sensor_error = true;
-        }
+
 
         temperature_string += String(temp) + ",";
 
-        if (++curr_sensor == NUM_TEMP_SENSORS) {
-            curr_sensor = 0;
-            if (millis() > last_temp_log + TEMP_LOG_PERIOD) {
-                storageManager.LogSD(temperature_string, TEMP_DATA);
-                last_temp_log = millis();
-            }
-            temperature_string = "";
+     }
+
+        curr_sensor = 0;
+        if (millis() > last_temp_log + TEMP_LOG_PERIOD) {
+            storageManager.LogSD(temperature_string, TEMP_DATA);
+            last_temp_log = millis();
         }
-    }
+        temperature_string = "";
+
+    //     // validate reading, check limits if valid
+    //     if (temp != TEMPERATURE_ERROR && temp != LTC_SENSOR_ERROR) {
+    //         temp_sensors[curr_sensor].last_temperature = temp;
+    //         temp_sensors[curr_sensor].sensor_error = false;
+
+    //         if (temp > temp_sensors[curr_sensor].limit_hi) {
+    //             if (!temp_sensors[curr_sensor].over_temp) { // if newly over
+    //                 storageManager.LogSD("Over temperature", ERR_DATA);
+    //                 temp_sensors[curr_sensor].over_temp = true;
+    //                 temp_sensors[curr_sensor].under_temp = false;
+    //             }
+    //             snprintf(limit_error, 100, "MCB Temp Limit, ch %u, t=%f", curr_sensor, temp);
+    //             limits_ok = false;
+    //         } else if (temp < temp_sensors[curr_sensor].limit_lo) {
+    //             if (!temp_sensors[curr_sensor].under_temp) { // if newly under
+    //                 storageManager.LogSD("Under temperature", ERR_DATA);
+    //                 temp_sensors[curr_sensor].over_temp = false;
+    //                 temp_sensors[curr_sensor].under_temp = true;
+    //             }
+    //             snprintf(limit_error, 100, "MCB Temp Limit, ch %u, t=%f", curr_sensor, temp);
+    //             limits_ok = false;
+    //         } else {
+    //             temp_sensors[curr_sensor].over_temp = false;
+    //             temp_sensors[curr_sensor].under_temp = false;
+    //         }
+    //     } else {
+    //         temp_sensors[curr_sensor].sensor_error = true;
+    //     }
+
+    //     temperature_string += String(temp) + ",";
+
+    //     if (++curr_sensor == NUM_TEMP_SENSORS) {
+    //         curr_sensor = 0;
+    //         if (millis() > last_temp_log + TEMP_LOG_PERIOD) {
+    //             storageManager.LogSD(temperature_string, TEMP_DATA);
+    //             last_temp_log = millis();
+    //         }
+    //         temperature_string = "";
+    //     }
+    // }
 
     return limits_ok;
 }
 
 bool MonitorMCB::CheckVoltages(void)
 {
-    static String voltage_string = "";
+
+static String voltage_string = "";
     static uint8_t curr_channel = 0;
     static uint32_t last_volt_log = 0;
     bool limits_ok = true;
@@ -285,6 +400,7 @@ bool MonitorMCB::CheckVoltages(void)
     }
 
     return limits_ok;
+
 }
 
 bool MonitorMCB::CheckCurrents(void)
@@ -295,13 +411,35 @@ bool MonitorMCB::CheckCurrents(void)
     bool limits_ok = true;
     float raw = 0.0f;
 
-    // read channel
-    imon_channels[curr_channel].last_raw = analogRead(imon_channels[curr_channel].channel_pin);
+    float coadd = 0.0f;
+
+    // read channel // 
+
+    for (int i = 0; i < 100; i++){ // find average over 100 reads 
+
+        //delay(10);
+        coadd+=analogRead(imon_channels[curr_channel].channel_pin);
+        
+        //if(i = 99){
+          //  imon_channels[curr_channel].last_raw = coadd/100;
+        //}       
+    }
+
+    imon_channels[curr_channel].last_raw = coadd/100.0;
     raw = imon_channels[curr_channel].last_raw;
+    coadd = 0.0;
 
     // calculate load current from sense current pin voltage (very sensitive to constants)
-    imon_channels[curr_channel].last_current = SENSE_CURR_SLOPE *
+    if(curr_channel == IMON_INST){
+
+        imon_channels[curr_channel].last_current = ((1.65-(VREF * raw / MAX_ADC_READ))/.044); //44 mv/A and minimum V=1.65 based on ACS&1240LLCBTR-030B3 datasheet
+    }
+    else{
+
+        imon_channels[curr_channel].last_current = SENSE_CURR_SLOPE *
             ((VREF / imon_channels[curr_channel].pulldown_res) * (raw / MAX_ADC_READ) - I_OFFSET);
+    
+    }
 
     // check limits
     if (imon_channels[curr_channel].last_current > imon_channels[curr_channel].limit_hi) {
@@ -469,8 +607,8 @@ bool MonitorMCB::AggregateMotionData(void)
     if (!temp_sensors[MC1_THERM].sensor_error) {
         AddSlowTM(PARAM_MC1_TEMP, TempToUInt16(temp_sensors[MC1_THERM].last_temperature));
     }
-    if (!temp_sensors[MC2_THERM].sensor_error) {
-        AddSlowTM(PARAM_MC2_TEMP, TempToUInt16(temp_sensors[MC2_THERM].last_temperature));
+    if (!temp_sensors[SPARE1_THERM].sensor_error) {
+        AddSlowTM(PARAM_MC2_TEMP, TempToUInt16(temp_sensors[SPARE1_THERM].last_temperature));
     }
 
     // add the brake current and supply voltage (ADC read can't fail in software)

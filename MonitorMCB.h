@@ -11,7 +11,8 @@
 #include "InternalSerialDriverMCB.h"
 #include "StorageManagerMCB.h"
 #include "ConfigManagerMCB.h"
-#include "LTC2983Manager.h"
+//#include "LTC2983Manager.h"
+#include "TSensor1WireBus.h"
 #include "ActionsMCB.h"
 #include "LevelWind.h"
 #include "Reel.h"
@@ -36,12 +37,13 @@ struct Temp_Sensor_t {
     float last_temperature;
     float limit_hi;
     float limit_lo;
-    uint8_t channel_number;
-    Sensor_Type_t sensor_type;
+    float channel_number;
+//    Sensor_Type_t sensor_type;
     bool sensor_error;
     bool over_temp;
     bool under_temp;
 };
+
 
 struct ADC_Voltage_t {
     float last_voltage;
@@ -87,6 +89,8 @@ struct Fast_TM_t {
     uint8_t curr_index;
 };
 
+
+
 class MonitorMCB {
 public:
     MonitorMCB(SafeBuffer * monitor_q, SafeBuffer * action_q, Reel * reel_in, LevelWind * lw_in, InternalSerialDriverMCB * dibdriver, ConfigManagerMCB * cfgManager);
@@ -102,17 +106,22 @@ public:
     // if a limit is exceeded, the relevant info is written to this string
     char limit_error[100];// temperature sensor table (hard-coded limits will be replace at init from EEPROM)
 
+    float T_MTR1 = 0;
+    float T_MTR2 = 0;
+    float T_MC1 = 0;
+    float T_SP1 = 0;
+    float T_SP2 = 0;
+
     Temp_Sensor_t temp_sensors[NUM_TEMP_SENSORS] =
-        /* last_temp | limit_hi | limit_lo | channel_num    | channel_type     | sens_err | over_temp | under_temp */
-        {{ 0.0f,       100.0f,     -100.0f,  MTR1_THERM_CH,   THERMISTOR_44006,  false,     false,      false},
-         { 0.0f,       100.0f,     -100.0f,  MTR2_THERM_CH,   THERMISTOR_44006,  false,     false,      false},
-         { 0.0f,       100.0f,     -100.0f,  MC1_THERM_CH,    THERMISTOR_44006,  false,     false,      false},
-         { 0.0f,       100.0f,     -100.0f,  MC2_THERM_CH,    THERMISTOR_44006,  false,     false,      false},
-         { 0.0f,       100.0f,     -100.0f,  DCDC_THERM_CH,   THERMISTOR_44006,  false,     false,      false},
-         { 0.0f,       100.0f,     -100.0f,  SPARE_THERM_CH,  THERMISTOR_44006,  false,     false,      false}};
+        /* last_temp | limit_hi | limit_lo | channel_num    | sens_err | over_temp | under_temp */
+        {{ 0.0f,       100.0f,     -100.0f,     T_MTR1,        false,     false,      false},
+         { 0.0f,       100.0f,     -100.0f,     T_MTR2,        false,     false,      false},
+         { 0.0f,       100.0f,     -100.0f,     T_MC1,         false,     false,      false},
+         { 0.0f,       100.0f,     -999.0f,     T_SP1,         false,     false,      false},
+         { 0.0f,       100.0f,     -999.0f,     T_SP2,         false,     false,      false}};
 
     // voltage ADC channel table (hard-coded limits will be replaced at init from EEPROM)
-    ADC_Voltage_t vmon_channels[NUM_VMON_CHANNELS] =
+     ADC_Voltage_t vmon_channels[NUM_VMON_CHANNELS] =
         /* last_volt | limit_hi | limit_lo | volt_div | last_raw | channel_pin   | over_volt | under_volt */
         {{ 0.0f,       3.8f,      2.6f,      0.5f,      0,         A_VMON_3V3,     false,      false},
          { 0.0f,       20.0f,     12.0f,     0.102f,    0,         A_VMON_15V,     false,      false},
@@ -125,7 +134,8 @@ public:
         {{ 0.0f,       5.0f,      -2.0f,     RES_15K,       0,         A_IMON_BRK,    false,      false},
          { 0.0f,       5.0f,      -2.0f,     RES_15K,       0,         A_IMON_MC,     false,      false},
          { 0.0f,       4.5f,      -2.0f,     RES_2K,        0,         A_IMON_MTR1,   false,      false},
-         { 0.0f,       5.0f,      -2.0f,     RES_2K,        0,         A_IMON_MTR2,   false,      false}};
+         { 0.0f,       5.0f,      -2.0f,     RES_2K,        0,         A_IMON_MTR2,   false,      false},
+         { 0.0f,       10.0f,     -2.0f,     1,             0,         A_IMON_INST,   false,      false}};
 
     Motor_Torque_t motor_torques[2] =
         /* last torque | limit_hi | limit_lo | conversion | read_error | over_torque | under_torque */
@@ -171,12 +181,19 @@ private:
     SafeBuffer * action_queue;
 
     // hardware objects
-	LTC2983Manager ltcManager;
+	//LTC2983Manager ltcManager;
 	StorageManagerMCB storageManager;
     LevelWind * levelWind;
     Reel * reel;
     InternalSerialDriverMCB * dibDriver;
     ConfigManagerMCB * configManager;
+
+    TSensor1Bus tempC_MTR1;
+    TSensor1Bus tempC_MTR2;
+    TSensor1Bus tempC_MC1;
+    TSensor1Bus tempC_SPARE1;
+    TSensor1Bus tempC_SPARE2;
+
 
     // motion data buffer for sending to the DIB/PIB
     uint8_t tm_buffer[MOTION_TM_SIZE];
