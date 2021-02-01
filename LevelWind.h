@@ -32,19 +32,39 @@
 #define RPM_PER_SEC			(1.0/60.0) // rpm to rps
 #define LW_SPEED_CONV		(LW_MM_PER_ROT*LW_MM_PER_SEC*RPM_PER_SEC) // multiply by reel speed to get LW speed
 
+/// Level wind addresses for MCB-SOLO configuration FLight_System_V6_RACHuTS_EmCamVariable
+//#ifdef INST_RACHUTS // defined in HardwareMCB.h
+//#define STOP_PROFILE_LW		0x4025
+//#define WIND_OUT_LW			0x4028
+//#define WIND_IN_LW			0x404C
+//#define SET_CENTER_LW		0x4060
+//#define HOME_LW				0x4077
+//#endif
+
 #ifdef INST_RACHUTS // defined in HardwareMCB.h
-#define STOP_PROFILE_LW		0x4025
-#define WIND_OUT_LW			0x4028
-#define WIND_IN_LW			0x404C
-#define SET_CENTER_LW		0x4060
-#define HOME_LW				0x4077
+#define STOP_PROFILE_LW		0x4022
+#define WIND_OUT_LW			0x4025
+#define WIND_IN_LW			0x4050
+#define SET_CENTER_LW		0x4067
+#define HOME_LW				0x407D
 #endif
+
+//////Level wind addresses for old EBOX system (non-mondo)
+//#ifdef INST_FLOATS // defined in HardwareMCB.h
+//#define STOP_PROFILE_LW		0x4025
+//#define WIND_OUT_LW			0x4028
+//#define WIND_IN_LW			0x404C
+//#define SET_CENTER_LW		0x4060
+//#define HOME_LW				0x4077
+//#endif
+
+//Level wind addresses for MONDO
 #ifdef INST_FLOATS // defined in HardwareMCB.h
-#define STOP_PROFILE_LW		0x401F
-#define WIND_OUT_LW			0x4022
-#define WIND_IN_LW			0x404D
-#define SET_CENTER_LW		0x4064
-#define HOME_LW				0x407B
+#define STOP_PROFILE_LW		0x4022
+#define WIND_OUT_LW			0x4025
+#define WIND_IN_LW			0x4050
+#define SET_CENTER_LW		0x4067
+#define HOME_LW				0x407D
 #endif
 
 class LevelWind : public Technosoft {
