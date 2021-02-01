@@ -34,14 +34,22 @@ void MCB::Startup()
 	// Serial setup
 	DEBUG_SERIAL.begin(115200);
 	DIB_SERIAL.begin(115200);
+	DEBUG_SERIAL.println("Initialize serial");
+
 
 	// Non-volatile storage setup (EEPROM then SD)
 	if (!configManager.Initialize()) dibDriver.dibComm.TX_Error("MCB error initializing EEPROM! Reconfigured");
+	DEBUG_SERIAL.println("Initialize config manager");
+
 	if (!storageManager.StartSD(configManager.boot_count.Read())) dibDriver.dibComm.TX_Error("MCB error starting SD card!");
+	DEBUG_SERIAL.println("Initialize SD");
+
 
 	// Set up limit monitor
 	limitMonitor.InitializeSensors();
+	DEBUG_SERIAL.println("Initialize Sensors");
 	limitMonitor.UpdateLimits();
+	DEBUG_SERIAL.println("Update Limits");
 
 	// Display startup info
 	PrintBootInfo();
@@ -54,11 +62,14 @@ void MCB::Startup()
 #endif
 
 	// TTL/RS-232 transceiver setup
-	pinMode(FORCEON_PIN, OUTPUT);
-	pinMode(FORCEOFF_PIN, OUTPUT);
-	digitalWrite(FORCEON_PIN, HIGH);
-	digitalWrite(FORCEOFF_PIN, HIGH);
-
+	//pinMode(FORCEON_PIN, OUTPUT);
+	//pinMode(FORCEOFF_PIN, OUTPUT);
+	//digitalWrite(FORCEON_PIN, HIGH);
+	//digitalWrite(FORCEOFF_PIN, HIGH);
+	
+	//bool test = ReelControllerOn();
+	analogReadResolution(12);
+	
 	InitializeWatchdog();
 }
 
@@ -359,11 +370,17 @@ void MCB::CheckReel(void)
 		LogFault();
 	} else if (reel.drive_status.motion_complete) {
 		levelWind.StopProfile();
+		
+		
+
 		Serial.println("Reel motion complete");
 		action_queue.Push(ACT_SWITCH_READY);
 		dibDriver.dibComm.TX_ASCII(MCB_MOTION_FINISHED);
 		delay(100);
 		dibDriver.dibComm.TX_ASCII(MCB_MOTION_FINISHED); // tx twice in case DIB misses the first
+
+		
+		
 	}
 }
 

@@ -17,7 +17,7 @@
 
 #include "MCBBufferGuard.h"
 #include "InternalSerialDriverMCB.h"
-#include "LTC2983Manager.h"
+//#include "LTC2983Manager.h"
 #include "PowerControllerMCB.h"
 #include "StorageManagerMCB.h"
 #include "ConfigManagerMCB.h"
