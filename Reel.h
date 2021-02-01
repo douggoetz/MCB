@@ -36,39 +36,60 @@
 #define DEFAULT_FULL_SPEED	250.0	// rpm
 #define DEFAULT_DOCK_SPEED	80.0	// rpm
 #define ACC_CONVERSION		0.01537
-#define DEFAULT_ACC			1.0		// rot/s^2
-#define MAX_ACC				2.0		// rot/s^2
+#define DEFAULT_ACC			8.0		// rot/s^2
+#define MAX_ACC				8.2		// rot/s^2
 #define MAX_SPEED			400.0 	// rpm
 #endif
 
 #ifdef INST_FLOATS // defined in HardwareMCB.h
 #define REEL_UNITS_PER_REV	344.0
 #define SPEED_CONVERSION	0.00459 // iu/rpm
-#define DEFAULT_FULL_SPEED	60.0	// rpm
-#define DEFAULT_DOCK_SPEED	60.0	// rpm
-#define ACC_CONVERSION		0.000035
-#define DEFAULT_ACC			20.0	// rot/s^2
-#define MAX_ACC				25.0	// rot/s^2
-#define MAX_SPEED			120.0 	// rpm
+#define DEFAULT_FULL_SPEED	20.0	// rpm
+#define DEFAULT_DOCK_SPEED	20.0	// rpm
+#define ACC_CONVERSION		0.00022
+#define DEFAULT_ACC			80	// rot/s^2
+#define MAX_ACC				82	// rot/s^2
+#define MAX_SPEED			100.0 	// rpm
 #endif
 
 // Technosoft function addresses
+
+// MCB-SOLO ebox configuration for Flight_System_V6_EmCamVariable
+//#ifdef INST_RACHUTS // defined in HardwareMCB.h
+//#define STOP_PROFILE_R		0x402C
+//#define REEL_VARIABLE_R		0x4031
+//#define CAM_SETUP_R			0x4043
+//#define CAM_STOP_R			0x4051
+//#define BRAKE_ON_R			0x4057
+//#define BRAKE_OFF_R			0x405C
+//#endif
+
 #ifdef INST_RACHUTS // defined in HardwareMCB.h
-#define STOP_PROFILE_R		0x402C
-#define REEL_VARIABLE_R		0x4031
-#define CAM_SETUP_R			0x4043
-#define CAM_STOP_R			0x4051
+#define STOP_PROFILE_R		0x403E
+#define REEL_VARIABLE_R		0x402C
+#define CAM_SETUP_R			0x4049
+#define CAM_STOP_R			0x4043
 #define BRAKE_ON_R			0x4057
 #define BRAKE_OFF_R			0x405C
 #endif
 
+///old ebox configuration FLOATS_Sey
+//#ifdef INST_FLOATS // defined in HardwareMCB.h
+//#define STOP_PROFILE_R		0x4026
+//#define REEL_VARIABLE_R		0x402B
+//#define CAM_SETUP_R			0x4046
+//#define CAM_STOP_R			0x4054
+//#define BRAKE_ON_R			0x405A
+//#define BRAKE_OFF_R			0x405F
+//#endif
+
 #ifdef INST_FLOATS // defined in HardwareMCB.h
-#define STOP_PROFILE_R		0x4026
-#define REEL_VARIABLE_R		0x402B
-#define CAM_SETUP_R			0x4046
-#define CAM_STOP_R			0x4055
-#define BRAKE_ON_R			0x405A
-#define BRAKE_OFF_R			0x405F
+#define STOP_PROFILE_R		0x403F
+#define REEL_VARIABLE_R		0x4024
+#define CAM_SETUP_R			0x404A
+#define CAM_STOP_R			0x4044
+#define BRAKE_ON_R			0x4058
+#define BRAKE_OFF_R			0x405D
 #endif
 
 // Position logging in case of power cycle
