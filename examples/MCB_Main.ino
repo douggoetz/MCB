@@ -8,7 +8,6 @@
  *  the motor control board (MCB) for FLOATS and RACHuTS on
  *  the Strateole 2 flights.
  */
-
 #include <HardwareMCB.h>
 #include <MCB.h>
 #include <ConfigManagerMCB.h>
@@ -63,7 +62,6 @@ void setup() {
 
   // MCB class initialization
   mcb.Startup();
-
   delay(500);
 }
 
@@ -71,6 +69,7 @@ void setup() {
 void loop() {
   // MCB class loop
   mcb.Loop();
+
   
   // wait for loop timing interrupt
   WaitForControlTimer();
