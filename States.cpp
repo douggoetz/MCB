@@ -242,6 +242,8 @@ void MCB::ReelIn()
 		break;
 
 	case STATE_EXIT:
+
+		//Serial.println("In STATE_EXIT");
 		if (reel.StopProfile()) {
 			// wait a bit for motion to settle if ongoing, then get a final position value
 			delay(50);
@@ -251,17 +253,22 @@ void MCB::ReelIn()
 			levelWind.StopProfile();
 			delay(50);
 			levelWind.StopProfile();
+			//Serial.println("Stop profile initiated");
+			
 
 			// power off if the home didn't complete
 			levelWind.UpdateDriveStatus();
 			if (!levelWind.drive_status.lsp_event) {
+				
 				LevelWindControllerOff();
 				ReelControllerOff();
 			}
-		} else {
+		 	else {
 			ReelControllerOff();
 			LevelWindControllerOff();
+			//Serial.println("Controller Commanded to Power off");
 			action_queue.Push(ACT_SWITCH_NOMINAL);
+			}
 		}
 		monitor_queue.Push(MONITOR_MOTORS_OFF);
 		Serial.println("Exiting reel in");
@@ -334,6 +341,7 @@ void MCB::Dock()
 		break;
 
 	case STATE_EXIT:
+
 		if (reel.StopProfile() && levelWind.StopProfile()) {
 			delay(50); // wait a bit for motion to settle if ongoing
 			reel.UpdatePosition();
